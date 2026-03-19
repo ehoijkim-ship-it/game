@@ -159,22 +159,29 @@ body {
     border-radius: 4px;
     display: inline-block;
 }
-
 /* Sidebar Styles */
+.sidebar {
+    flex: 0 0 280px; /* 고정 너비 할당 */
+}
+
 .sidebar-section {
     background: #fff;
     padding: 1.5rem;
     border-radius: 10px;
     margin-bottom: 1.5rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    border: 1px solid #eee;
 }
 
 .sidebar-title {
     font-size: 1.1rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.2rem;
     color: #2c3e50;
-    border-left: 4px solid #3498db;
-    padding-left: 10px;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .sidebar-list {
@@ -182,20 +189,35 @@ body {
 }
 
 .sidebar-list li {
-    margin-bottom: 0.8rem;
+    margin-bottom: 10px;
 }
 
 .sidebar-list a {
-    color: #34495e;
+    color: #444;
     text-decoration: none;
-    font-size: 0.95rem;
+    font-size: 1rem;
+    display: block;
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: #f8f9fa;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
 }
 
-.sidebar-list a:hover {
+.sidebar-list a:hover:not(.disabled) {
+    background: #e9ecef;
     color: #3498db;
-    text-decoration: underline;
+    border-left: 3px solid #3498db;
+    transform: translateX(5px);
 }
 
+.sidebar-list a.disabled {
+    color: #aaa;
+    cursor: not-allowed;
+    background: #f1f1f1;
+}
+
+/* Sidebar Ad Container */
 /* ───────── GOOGLE ADS PLACEHOLDERS ───────── */
 /* Layout consideration for ads: 
    - Ensure proper margins/paddings to prevent layout shift.
