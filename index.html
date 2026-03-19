@@ -45,16 +45,17 @@
                     </div>
                 </a>
 
-                <!-- Game Card Placeholder 2 -->
-                <div class="game-card placeholder">
-                    <div class="game-thumbnail">
-                        <div class="empty-thumbnail">Next Game coming soon...</div>
+                <!-- Game Card 2: 뱀 게임 -->
+                <a href="games/snake/index.html" class="game-card">
+                    <div class="game-thumbnail" style="background: #1a1a2e; display: flex; align-items: center; justify-content: center; font-size: 5rem;">
+                        🐍
                     </div>
                     <div class="game-info">
-                        <h3 class="game-title">Coming Soon</h3>
-                        <p class="game-desc">새로운 게임이 곧 추가될 예정입니다.</p>
+                        <h3 class="game-title">뱀 게임</h3>
+                        <p class="game-desc">클래식한 뱀 게임입니다. 먹이를 먹고 몸집을 키우며 자신의 한계에 도전해보세요!</p>
+                        <span class="game-category">Arcade</span>
                     </div>
-                </div>
+                </a>
                 
                 <!-- Game Card Placeholder 3 -->
                 <div class="game-card placeholder">
@@ -67,6 +68,29 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 방문자 피드백 섹션 -->
+            <section class="feedback-section">
+                <h2 class="section-title">방문자 피드백 & 평가</h2>
+                <div class="feedback-container">
+                    <p class="feedback-intro">게임에 대한 소중한 의견을 남겨주세요! 여러분의 별점과 댓글은 큰 힘이 됩니다.</p>
+                    <div id="disqus_thread"></div>
+                    <script>
+                        /**
+                        *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+                        *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+                        */
+                        /*
+                        var disqus_config = function () {
+                        this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+                        this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                        };
+                        */
+                        /* [DISQUS_SCRIPT_HERE] */
+                    </script>
+                    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                </div>
+            </section>
         </section>
 
         <aside class="sidebar">
@@ -82,6 +106,7 @@
                 <h3 class="sidebar-title">인기 게임</h3>
                 <ul class="sidebar-list">
                     <li><a href="games/baksoo-game/index.html">백수 구출 대작전</a></li>
+                    <li><a href="games/snake/index.html">뱀 게임</a></li>
                 </ul>
             </div>
         </aside>
