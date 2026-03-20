@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수중생물 진화 강화 게임</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: #050a1a;
+            color: #e0e8ff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .bg-bubbles { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+        .bubble {
+            position: absolute; bottom: -60px; border-radius: 50%;
+            background: rgba(80, 120, 255, 0.07); border: 1px solid rgba(80, 120, 255, 0.13);
+            animation: rise linear infinite;
+        }
+        @keyframes rise { to { transform: translateY(-110vh) scale(1.2); opacity: 0; } }
+
+        .game-wrapper {
+            position: relative; z-index: 1;
+            max-width: 920px; margin: 0 auto; padding: 14px;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+
+        /* ── 상단 바 ── */
+        .top-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(10, 20, 50, 0.92); border: 1px solid rgba(80, 140, 255, 0.3);
+            border-radius: 14px; padding: 10px 18px; gap: 10px; flex-wrap: wrap;
+        }
+        .game-title-small {
+            font-size: 1rem; font-weight: 900;
+            background: linear-gradient(135deg, #7eb8ff, #b48aff);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; white-space: nowrap;
+        }
+        .stat-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        .stat-item {
+            display: flex; align-items: center; gap: 5px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px; padding: 4px 11px; font-size: 0.84rem;
+        }
+        .stat-item .label { color: #8899cc; font-size: 0.73rem; }
+        .stat-item .value { font-weight: 700; color: #e8f0ff; }
+        #gold-val    { color: #ffd86b; }
+        #essence-val { color: #67e8f9; }
+        #stage-val   { color: #a78bfa; }
+
+        .music-btn {
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px; padding: 5px 10px; font-size: 1rem; cursor: pointer;
+            color: #e0e8ff; transition: background 0.2s, transform 0.1s; line-height: 1;
+            flex-shrink: 0;
+        }
+        .music-btn:hover { background: rgba(255,255,255,0.13); transform: scale(1.08); }
+
+        /* ── 메인 그리드 ── */
+        .main-area { display: grid; grid-template-columns: 1fr 280px; gap: 10px; }
+        .left-col  { display: flex; flex-direction: column; gap: 10px; }
+
+        /* 골드→정수 교환 */
+        .exchange-row { display: flex; gap: 5px; margin-top: 4px; }
+        .exchange-btn {
+            flex: 1; padding: 7px 3px; font-size: 0.68rem; font-weight: 700;
+            font-family: 'Noto Sans KR', sans-serif;
+            border: 1px solid rgba(250,204,21,0.35); border-radius: 7px;
+            background: rgba(250,204,21,0.07); color: #fcd34d;
+            cursor: pointer; transition: background 0.15s, transform 0.1s;
+            text-align: center; line-height: 1.45;
+        }
+        .exchange-btn span { font-size: 0.62rem; color: #92400e; font-weight: 400; }
+        .exchange-btn:hover:not(:disabled) { background: rgba(250,204,21,0.18); transform: translateY(-1px); }
+        .exchange-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+        /* ── 진화 패널 ── */
+        .evo-panel {
+            background: rgba(10, 18, 45, 0.93);
+            border: 1px solid rgba(80, 140, 255, 0.25);
+            border-radius: 18px; padding: 22px 24px;
+            display: flex; flex-direction: column; align-items: center; gap: 14px;
+            position: relative; overflow: hidden;
+        }
+        .evo-panel::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(ellipse at 50% 55%, rgba(60, 100, 255, 0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .creature-display { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .creature-emoji {
+            font-size: 6.8rem; line-height: 1;
+            filter: drop-shadow(0 0 22px rgba(100, 160, 255, 0.45));
+            transition: transform 0.3s ease, opacity 0.3s ease, filter 0.3s ease;
+            user-select: none;
+        }
+        .creature-emoji.dying {
+            animation: death-anim 0.4s ease-out forwards;
+        }
+        @keyframes death-anim {
+            0%   { transform: scale(1);    opacity: 1; filter: drop-shadow(0 0 22px rgba(248,113,113,0.8)); }
+            40%  { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 40px rgba(248,113,113,1)); }
+            100% { transform: scale(0.2);  opacity: 0; filter: drop-shadow(0 0 0px transparent); }
+        }
+        .creature-emoji.selling {
+            animation: sell-anim 0.35s ease-out forwards;
+        }
+        @keyframes sell-anim {
+            0%   { transform: scale(1);   opacity: 1; filter: drop-shadow(0 0 22px rgba(100,160,255,0.5)); }
+            50%  { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 40px rgba(255,215,0,0.9)); }
+            100% { transform: scale(0.3); opacity: 0; }
+        }
+        .creature-name {
+            font-size: 1.5rem; font-weight: 900; letter-spacing: 0.04em;
+            background: linear-gradient(135deg, #93c5fd, #c4b5fd);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .stage-badge { font-size: 0.74rem; color: #4a5580; letter-spacing: 0.12em; }
+
+        /* 판매가 배너 */
+        .sell-value-banner {
+            width: 100%; display: flex; align-items: center; justify-content: center;
+            gap: 8px;
+            background: rgba(250, 204, 21, 0.07); border: 1px solid rgba(250, 204, 21, 0.2);
+            border-radius: 10px; padding: 7px 14px;
+        }
+        .svb-label { font-size: 0.74rem; color: #92400e; }
+        .svb-val   { font-size: 1.05rem; font-weight: 900; color: #fcd34d; }
+
+        /* 진행바 */
+        .upgrade-progress { width: 100%; }
+        .progress-label { display: flex; justify-content: space-between; font-size: 0.73rem; color: #7788aa; margin-bottom: 5px; }
+        .progress-bar-bg { width: 100%; height: 7px; background: rgba(255,255,255,0.07); border-radius: 4px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); border-radius: 4px; transition: width 0.5s ease; }
+
+        /* 정보 박스 */
+        .upgrade-info { display: flex; gap: 12px; width: 100%; }
+        .info-box {
+            flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px; padding: 7px 10px;
+        }
+        .info-box .ib-label { color: #7788aa; font-size: 0.67rem; }
+        .info-box .ib-val   { font-weight: 700; font-size: 0.93rem; }
+        .ib-gold { color: #ffd86b; }
+        .ib-rate { color: #6ee7b7; }
+
+        /* 섹션 라벨 */
+        .section-label {
+            width: 100%; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em;
+            color: #4a5580; text-align: left;
+        }
+
+        /* 활성 아이템 */
+        .active-items { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; min-height: 26px; }
+        .active-item-badge {
+            font-size: 0.72rem; padding: 3px 9px; border-radius: 20px; border: 1px solid;
+            animation: pulse-badge 1.5s ease-in-out infinite;
+        }
+        .badge-herb    { background: rgba(34,197,94,0.15);  border-color: rgba(34,197,94,0.4);  color: #86efac; }
+        .badge-shield  { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.4); color: #93c5fd; }
+        .badge-rebirth { background: rgba(251,146,60,0.15); border-color: rgba(251,146,60,0.4); color: #fdba74; }
+        @keyframes pulse-badge { 0%,100%{opacity:1} 50%{opacity:0.55} }
+
+        /* 결과 메시지 */
+        .result-msg {
+            font-size: 1.5rem; font-weight: 900; letter-spacing: 0.06em;
+            min-height: 1.9rem; text-align: center; transition: all 0.25s ease;
+        }
+        .result-success { color: #4ade80; text-shadow: 0 0 18px rgba(74,222,128,0.6); }
+        .result-fail    { color: #f87171; text-shadow: 0 0 18px rgba(248,113,113,0.6); }
+        .result-sell    { color: #fcd34d; text-shadow: 0 0 18px rgba(252,211,77,0.6); }
+        .result-clear   { color: #ffd700; text-shadow: 0 0 28px rgba(255,215,0,0.8); font-size: 1.85rem; }
+
+        /* 퀵 아이템 사용 */
+        .quick-items { display: flex; gap: 5px; flex-wrap: wrap; width: 100%; justify-content: center; min-height: 0; }
+        .qi-btn {
+            display: flex; align-items: center; gap: 4px;
+            padding: 5px 11px; border-radius: 8px; cursor: pointer;
+            border: 1px solid rgba(103,232,249,0.35);
+            background: rgba(103,232,249,0.08); color: #a5f3fc;
+            font-size: 0.78rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif;
+            transition: background 0.15s, transform 0.1s;
+        }
+        .qi-btn:hover:not(:disabled) { background: rgba(103,232,249,0.22); transform: translateY(-1px); }
+        .qi-btn:disabled { opacity: 0.32; cursor: not-allowed; transform: none; }
+        .qi-btn.qi-active {
+            background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.4);
+            color: #86efac; cursor: default;
+            animation: pulse-badge 1.5s ease-in-out infinite;
+        }
+        .qi-count { font-size: 0.68rem; opacity: 0.7; }
+
+        /* 버튼 행 */
+        .btn-row { display: flex; gap: 8px; width: 100%; }
+
+        .upgrade-btn {
+            flex: 1.6; padding: 13px; font-size: 1.1rem; font-weight: 900;
+            font-family: 'Noto Sans KR', sans-serif; letter-spacing: 0.03em;
+            border: none; border-radius: 13px; cursor: pointer;
+            background: linear-gradient(135deg, #1d4ed8, #7c3aed); color: #fff;
+            position: relative; overflow: hidden;
+            transition: transform 0.12s, box-shadow 0.2s;
+            box-shadow: 0 4px 18px rgba(100,100,255,0.3);
+        }
+        .upgrade-btn::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,0.1),transparent); }
+        .upgrade-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 26px rgba(100,100,255,0.45); }
+        .upgrade-btn:active:not(:disabled) { transform: translateY(0); }
+        .upgrade-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+        .upgrade-btn.clear { background: linear-gradient(135deg, #d97706, #dc2626); }
+
+        .sell-btn {
+            flex: 1; padding: 13px 8px; font-size: 0.88rem; font-weight: 900;
+            font-family: 'Noto Sans KR', sans-serif; letter-spacing: 0.02em;
+            border: 1px solid rgba(250,204,21,0.4); border-radius: 13px; cursor: pointer;
+            background: rgba(250,204,21,0.12); color: #fcd34d;
+            transition: background 0.2s, transform 0.12s, box-shadow 0.2s;
+        }
+        .sell-btn:hover:not(:disabled) { background: rgba(250,204,21,0.22); transform: translateY(-2px); box-shadow: 0 4px 18px rgba(250,204,21,0.25); }
+        .sell-btn:active:not(:disabled) { transform: translateY(0); }
+        .sell-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+        /* ── 우측 패널 ── */
+        .side-panel { display: flex; flex-direction: column; gap: 10px; }
+        .panel-box {
+            background: rgba(10, 18, 45, 0.93);
+            border: 1px solid rgba(80, 140, 255, 0.25);
+            border-radius: 18px; padding: 14px;
+        }
+        .panel-title {
+            font-size: 0.84rem; font-weight: 700; color: #7eb8ff; letter-spacing: 0.07em;
+            margin-bottom: 10px; padding-bottom: 7px;
+            border-bottom: 1px solid rgba(80, 140, 255, 0.2);
+        }
+
+        .shop-item {
+            display: flex; flex-direction: column; gap: 5px;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 9px; padding: 9px; margin-bottom: 7px;
+        }
+        .shop-item:last-child { margin-bottom: 0; }
+        .shop-item-header { display: flex; align-items: center; justify-content: space-between; }
+        .shop-item-name { font-size: 0.82rem; font-weight: 700; }
+        .shop-item-cost {
+            font-size: 0.7rem; color: #67e8f9;
+            background: rgba(103,232,249,0.1); border: 1px solid rgba(103,232,249,0.25);
+            border-radius: 5px; padding: 1px 7px;
+        }
+        .shop-item-desc { font-size: 0.7rem; color: #7788aa; line-height: 1.4; }
+        .shop-btn {
+            padding: 5px 10px; font-size: 0.75rem; font-weight: 700;
+            font-family: 'Noto Sans KR', sans-serif;
+            border: 1px solid rgba(103,232,249,0.35); border-radius: 6px;
+            background: rgba(103,232,249,0.1); color: #a5f3fc;
+            cursor: pointer; transition: background 0.2s, transform 0.1s; width: 100%;
+        }
+        .shop-btn:hover:not(:disabled) { background: rgba(103,232,249,0.22); transform: translateY(-1px); }
+        .shop-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* 아이템 보관함 */
+        .inv-item {
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 9px; padding: 8px 10px; margin-bottom: 6px;
+        }
+        .inv-item:last-child { margin-bottom: 0; }
+        .inv-emoji { font-size: 1.2rem; flex-shrink: 0; }
+        .inv-info  { flex: 1; min-width: 0; }
+        .inv-name  { font-size: 0.8rem; font-weight: 700; color: #c4b5fd; }
+        .inv-desc  { font-size: 0.68rem; color: #7788aa; margin-top: 1px; }
+        .inv-count {
+            font-size: 0.78rem; font-weight: 700; color: #fcd34d;
+            background: rgba(252,211,77,0.12); border: 1px solid rgba(252,211,77,0.25);
+            border-radius: 5px; padding: 2px 8px; flex-shrink: 0;
+        }
+        .inv-count.zero { color: #4a5580; background: transparent; border-color: rgba(74,85,128,0.15); }
+        .inv-use-btn {
+            padding: 4px 10px; font-size: 0.73rem; font-weight: 700;
+            font-family: 'Noto Sans KR', sans-serif; flex-shrink: 0;
+            border: 1px solid rgba(103,232,249,0.4); border-radius: 6px;
+            background: rgba(103,232,249,0.1); color: #a5f3fc;
+            cursor: pointer; transition: background 0.15s, transform 0.1s;
+        }
+        .inv-use-btn:hover:not(:disabled) { background: rgba(103,232,249,0.22); transform: translateY(-1px); }
+        .inv-use-btn:disabled { opacity: 0.28; cursor: not-allowed; }
+        .inv-use-btn.active {
+            background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.4);
+            color: #86efac; cursor: default;
+            animation: pulse-badge 1.5s ease-in-out infinite;
+        }
+
+        /* 단계 목록 */
+        .stages-panel { flex: 1; }
+        .stage-list { display: flex; flex-direction: column; gap: 2px; }
+        .stage-row {
+            display: flex; align-items: center; gap: 7px;
+            padding: 4px 7px; border-radius: 7px; font-size: 0.71rem;
+            transition: background 0.2s; opacity: 0.38;
+        }
+        .stage-row.current { background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4); opacity: 1; }
+        .stage-row.done    { opacity: 0.62; }
+        .stage-row.done .srow-name { color: #4ade80; }
+        .srow-num   { color: #4a5580; width: 20px; text-align: right; flex-shrink: 0; }
+        .srow-emoji { width: 18px; text-align: center; flex-shrink: 0; }
+        .srow-name  { flex: 1; color: #8899cc; font-weight: 500; }
+        .srow-sell  { color: #4a5580; font-size: 0.62rem; width: 48px; text-align: right; flex-shrink: 0; }
+        .stage-row.current .srow-name { color: #c4b5fd; font-weight: 700; }
+        .stage-row.current .srow-sell { color: #fcd34d; }
+
+        /* 정수 수집 버튼 */
+        .collect-zone {
+            display: none; width: 100%; cursor: pointer;
+            background: rgba(103,232,249,0.08);
+            border: 1px solid rgba(103,232,249,0.45);
+            border-radius: 12px; padding: 10px 16px;
+            font-size: 0.95rem; font-weight: 700; color: #67e8f9;
+            text-align: center; user-select: none;
+            transition: background 0.15s, transform 0.1s;
+            animation: pulse-collect 1.2s ease-in-out infinite;
+        }
+        .collect-zone.active { display: block; }
+        .collect-zone:hover  { background: rgba(103,232,249,0.18); transform: scale(1.02); }
+        @keyframes pulse-collect {
+            0%,100% { box-shadow: 0 0 0 0 rgba(103,232,249,0.35); }
+            50%     { box-shadow: 0 0 0 7px rgba(103,232,249,0); }
+        }
+
+        /* 오버레이 */
+        .effect-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0; transition: opacity 0.1s; }
+        .effect-overlay.success { background: radial-gradient(ellipse at 50% 50%, rgba(74,222,128,0.2) 0%, transparent 70%); }
+        .effect-overlay.fail    { background: radial-gradient(ellipse at 50% 50%, rgba(248,113,113,0.28) 0%, transparent 65%); }
+        .effect-overlay.sell    { background: radial-gradient(ellipse at 50% 50%, rgba(252,211,77,0.2) 0%, transparent 70%); }
+        .effect-overlay.active  { opacity: 1; }
+
+        #particle-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 200; }
+
+        /* 클리어 팝업 */
+        .clear-popup { position: fixed; inset: 0; z-index: 300; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.75); backdrop-filter: blur(5px); }
+        .clear-popup.active { display: flex; }
+        .clear-box {
+            background: linear-gradient(135deg, #0f172a, #1e1b4b);
+            border: 2px solid rgba(255,215,0,0.5); border-radius: 24px;
+            padding: 44px 38px; text-align: center; max-width: 380px;
+            box-shadow: 0 0 60px rgba(255,215,0,0.3), 0 0 120px rgba(255,215,0,0.1);
+            animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes pop-in { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .clear-emoji  { font-size: 4.5rem; margin-bottom: 14px; }
+        .clear-title  { font-size: 1.85rem; font-weight: 900; color: #ffd700; text-shadow: 0 0 20px rgba(255,215,0,0.6); margin-bottom: 7px; }
+        .clear-sub    { font-size: 0.84rem; color: #94a3b8; margin-bottom: 22px; line-height: 1.6; }
+        .clear-restart-btn {
+            padding: 11px 28px; font-size: 0.94rem; font-weight: 700;
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #d97706, #b45309); color: #fff;
+            border: none; border-radius: 11px; cursor: pointer; transition: transform 0.1s;
+        }
+        .clear-restart-btn:hover { transform: scale(1.05); }
+
+        /* 토스트 */
+        .toast {
+            position: fixed; bottom: 20px; left: 50%;
+            transform: translateX(-50%) translateY(70px);
+            background: rgba(15,23,42,0.97); border: 1px solid rgba(255,255,255,0.13);
+            border-radius: 9px; padding: 9px 18px; font-size: 0.82rem; color: #e2e8f0;
+            z-index: 400; transition: transform 0.3s ease; white-space: nowrap; pointer-events: none;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        @media (max-width: 680px) {
+            .main-area { grid-template-columns: 1fr; }
+            .side-panel { flex-direction: row; flex-wrap: wrap; }
+            .panel-box  { flex: 1; min-width: 200px; }
+            .creature-emoji { font-size: 5.5rem; }
+            .exchange-row { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-bubbles" id="bubbles"></div>
+<canvas id="particle-canvas"></canvas>
+<div class="effect-overlay" id="effect-overlay"></div>
+
+<div class="game-wrapper">
+
+    <!-- 상단 바 -->
+    <div class="top-bar">
+        <div class="game-title-small">🌊 수중생물 진화</div>
+        <div class="stat-group">
+            <div class="stat-item">
+                <span class="label">💰 골드</span>
+                <span class="value" id="gold-val">400</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">💎 정수</span>
+                <span class="value" id="essence-val">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">📊 단계</span>
+                <span class="value" id="stage-val">1 / 15</span>
+            </div>
+        </div>
+        <button class="music-btn" id="music-btn" onclick="AudioMgr.toggle()" title="음악 켜기/끄기">🔊</button>
+    </div>
+
+    <!-- 메인 -->
+    <div class="main-area">
+
+        <!-- 왼쪽 컬럼 -->
+        <div class="left-col">
+
+        <!-- 진화 패널 -->
+        <div class="evo-panel">
+            <div class="creature-display">
+                <div class="creature-emoji" id="creature-emoji">💧</div>
+                <div class="creature-name" id="creature-name">물방울</div>
+                <div class="stage-badge" id="stage-badge">STAGE 1</div>
+            </div>
+
+            <!-- 현재 판매가 -->
+            <div class="sell-value-banner">
+                <span class="svb-label">💰 현재 판매가</span>
+                <span class="svb-val" id="sell-price-disp">50 G</span>
+            </div>
+
+            <div class="upgrade-progress">
+                <div class="progress-label">
+                    <span>진화 진행도</span>
+                    <span id="prog-text">1 / 15</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="prog-bar" style="width:6.67%"></div>
+                </div>
+            </div>
+
+            <div class="upgrade-info">
+                <div class="info-box">
+                    <span class="ib-label">강화 비용</span>
+                    <span class="ib-val ib-gold" id="cost-val">100G</span>
+                </div>
+                <div class="info-box">
+                    <span class="ib-label">성공 확률</span>
+                    <span class="ib-val ib-rate" id="rate-val">95%</span>
+                </div>
+            </div>
+
+            <div class="section-label">효과발동</div>
+            <div class="active-items" id="active-items"></div>
+
+            <div class="result-msg" id="result-msg"></div>
+
+            <div class="collect-zone" id="collect-zone" onclick="collectEssence()"></div>
+
+            <div class="section-label">아이템</div>
+            <div class="quick-items" id="quick-items"></div>
+
+            <div class="btn-row">
+                <button class="upgrade-btn" id="upgrade-btn" onclick="doUpgrade()">⚡ 강화하기</button>
+                <button class="sell-btn"    id="sell-btn"    onclick="doSell()">💰 판매</button>
+            </div>
+        </div>
+
+        <!-- 단계 목록 (왼쪽 컬럼 하단) -->
+        <div class="panel-box stages-panel">
+            <div class="panel-title">📋 진화 단계 & 판매가</div>
+            <div class="stage-list" id="stage-list"></div>
+        </div>
+
+        </div><!-- /left-col -->
+
+        <!-- 우측 패널 -->
+        <div class="side-panel">
+
+            <!-- 정수 교환소 -->
+            <div class="panel-box">
+                <div class="panel-title">🏪 정수 교환소</div>
+                <div class="shop-item">
+                    <div class="shop-item-header">
+                        <span class="shop-item-name">🍀 용의 물풀</span>
+                        <span class="shop-item-cost">정수 40개</span>
+                    </div>
+                    <div class="shop-item-desc">성공률 +20%</div>
+                    <button class="shop-btn" id="btn-herb" onclick="buyItem('herb')">구매</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-header">
+                        <span class="shop-item-name">🛡️ 심해의 가호</span>
+                        <span class="shop-item-cost">정수 80개</span>
+                    </div>
+                    <div class="shop-item-desc">소멸 방지 → 1단계 하락</div>
+                    <button class="shop-btn" id="btn-shield" onclick="buyItem('shield')">구매</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-header">
+                        <span class="shop-item-name">🌠 천상의 불꽃</span>
+                        <span class="shop-item-cost">정수 120개</span>
+                    </div>
+                    <div class="shop-item-desc">7~12단계 중 랜덤 이동</div>
+                    <button class="shop-btn" id="btn-rebirth2" onclick="buyItem('rebirth2')">구매</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-header">
+                        <span class="shop-item-name">⚡ 용왕의 비약</span>
+                        <span class="shop-item-cost">정수 200개</span>
+                    </div>
+                    <div class="shop-item-desc">성공률 +50%</div>
+                    <button class="shop-btn" id="btn-elixir" onclick="buyItem('elixir')">구매</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- 클리어 팝업 -->
+<div class="clear-popup" id="clear-popup">
+    <div class="clear-box">
+        <div class="clear-emoji">👑</div>
+        <div class="clear-title">용신 달성!</div>
+        <div class="clear-sub">수많은 강화와 소멸을 딛고<br>전설의 용신이 탄생했습니다!</div>
+        <button class="clear-restart-btn" onclick="restartGame()">다시 시작</button>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── 진화 데이터 ──────────────────────────────────────────
+const STAGES = [
+    { name: '아메바',        emoji: '🦠',   rate: 97, penalty: 0 },
+    { name: '수정 새우',     emoji: '🦐',   rate: 93, penalty: 0 },
+    { name: '은빛 미꾸라지', emoji: '🐟',   rate: 88, penalty: 1 },
+    { name: '금빛 잉어',     emoji: '🐡',   rate: 82, penalty: 1 },
+    { name: '빛나는 뱀장어', emoji: '🐠',   rate: 75, penalty: 1 },
+    { name: '심해 문어',     emoji: '🐙',   rate: 67, penalty: 1 },
+    { name: '심해 바다뱀',  emoji: '🐍',   rate: 57, penalty: 1 },
+    { name: '심해 상어',     emoji: '🦈',   rate: 48, penalty: 1 },
+    { name: '제왕 고래',     emoji: '🐋',   rate: 40, penalty: 1 },
+    { name: '태고의 해룡',   emoji: '🦕',   rate: 32, penalty: 1 },
+    { name: '이무기',         emoji: '🐉',   rate: 25, penalty: 2 },
+    { name: '붉은 이무기',   emoji: '🔥🐉', rate: 18, penalty: 2 },
+    { name: '반룡',           emoji: '⚡🐉', rate: 12, penalty: 2 },
+    { name: '천룡',           emoji: '👑🐉', rate:  7, penalty: 2 },
+    { name: '용신',          emoji: '🔱',   rate:  0, penalty: 0 },
+];
+
+// 단계별 강화 비용 (index = 현재 stage, 초반 저렴 / 후반 급증)
+const COSTS = [60, 90, 130, 180, 250, 340, 460, 610, 800, 1050, 1400, 1850, 2500, 3300];
+
+// 단계별 판매 가격 (상향)
+const SELL_PRICE = [
+    80,      // 1단계: 물방울
+    250,     // 2단계: 수정 새우
+    600,     // 3단계: 은빛 미꾸라지
+    1200,    // 4단계: 금빛 잉어
+    2200,    // 5단계: 빛나는 뱀장어
+    3800,    // 6단계: 거대 뱀장어
+    6200,    // 7단계: 바다뱀
+    10000,   // 8단계: 심연의 바다뱀
+    16000,   // 9단계: 이무기
+    26000,   // 10단계: 붉은 이무기
+    42000,   // 11단계: 반룡
+    68000,   // 12단계: 청룡
+    110000,  // 13단계: 황룡
+    180000,  // 14단계: 천룡
+    0,       // 15단계: 용신 (클리어, 판매 불가)
+];
+
+// 아이템 정의
+const ITEM_DEFS = [
+    { id: 'herb',    emoji: '🍀', name: '용의 물풀',    desc: '+20% 성공률',          cost:  40 },
+    { id: 'shield',  emoji: '🛡️', name: '심해의 가호',  desc: '소멸 방지 (1회)',       cost:  80 },
+    { id: 'rebirth2', emoji: '🌠', name: '천상의 불꽃', desc: '즉시 7~12단계로 이동', cost: 120 },
+    { id: 'elixir',   emoji: '⚡', name: '용왕의 비약', desc: '+50% 성공률 (1회)',      cost: 200 },
+];
+
+// 소멸 시 정수 드랍 범위 [min, max] — 단계 높을수록 더 많이
+const ESSENCE_DROP = [
+    [  8,  15], // 1단계   avg ~12
+    [ 12,  22], // 2단계   avg ~17
+    [ 17,  28], // 3단계   avg ~23
+    [ 22,  34], // 4단계   avg ~28
+    [ 30,  48], // 5단계   avg ~39  (+39%)
+    [ 42,  64], // 6단계   avg ~53  (+36%)
+    [ 56,  84], // 7단계   avg ~70  (+32%)
+    [ 74, 110], // 8단계   avg ~92  (+31%)
+    [ 98, 144], // 9단계   avg ~121 (+32%)
+    [128, 188], // 10단계  avg ~158 (+31%)
+    [168, 245], // 11단계  avg ~207 (+31%)
+    [218, 318], // 12단계  avg ~268 (+29%)
+    [280, 410], // 13단계  avg ~345 (+29%)
+    [360, 525], // 14단계  avg ~443 (+28%)
+    [  0,   0], // 용신 (없음)
+];
+
+// ─── 상태 ────────────────────────────────────────────────
+let state = {
+    gold: 400,
+    essence: 0,
+    stage: 0,
+    herb: false,
+    shield: false,
+    elixir: false,
+    inventory: { herb: 0, rebirth2: 0, shield: 0, elixir: 0 },
+    pendingEssence: 0,
+    isAnimating: false,
+    cleared: false,
+};
+let collectAutoTimer = null;
+
+// ─── DOM ─────────────────────────────────────────────────
+const els = {
+    gold:      document.getElementById('gold-val'),
+    essence:   document.getElementById('essence-val'),
+    stageV:    document.getElementById('stage-val'),
+    emoji:     document.getElementById('creature-emoji'),
+    name:      document.getElementById('creature-name'),
+    badge:     document.getElementById('stage-badge'),
+    progBar:   document.getElementById('prog-bar'),
+    progTxt:   document.getElementById('prog-text'),
+    cost:      document.getElementById('cost-val'),
+    rate:      document.getElementById('rate-val'),
+    result:    document.getElementById('result-msg'),
+    upBtn:     document.getElementById('upgrade-btn'),
+    sellBtn:   document.getElementById('sell-btn'),
+    sellDisp:  document.getElementById('sell-price-disp'),
+    activeItems: document.getElementById('active-items'),
+    stageList:   document.getElementById('stage-list'),
+    overlay:     document.getElementById('effect-overlay'),
+    collectZone: document.getElementById('collect-zone'),
+    herbBtn:     document.getElementById('btn-herb'),
+    shieldBtn:   document.getElementById('btn-shield'),
+    rebirth2Btn: document.getElementById('btn-rebirth2'),
+    elixirBtn:   document.getElementById('btn-elixir'),
+    quickItems:  document.getElementById('quick-items'),
+    clearPopup:  document.getElementById('clear-popup'),
+    toast:       document.getElementById('toast'),
+};
+
+// ─── 초기화 ──────────────────────────────────────────────
+function init() {
+    buildStageList();
+    renderUI();
+    spawnBubbles();
+}
+
+function buildStageList() {
+    els.stageList.innerHTML = '';
+    STAGES.forEach((s, i) => {
+        const row = document.createElement('div');
+        row.className = 'stage-row';
+        row.id = `srow-${i}`;
+        const sellStr = i < 14 ? SELL_PRICE[i].toLocaleString() + 'G' : '완성';
+        row.innerHTML = `
+            <span class="srow-num">${i+1}</span>
+            <span class="srow-emoji">${s.emoji}</span>
+            <span class="srow-name">${s.name}</span>
+            <span class="srow-sell">${sellStr}</span>
+        `;
+        els.stageList.appendChild(row);
+    });
+}
+
+function renderUI() {
+    const s = state;
+    const cur = STAGES[s.stage];
+    const cost = s.stage < 14 ? COSTS[s.stage] : 0;
+    let rate = s.stage < 14 ? cur.rate : 0;
+    if (s.herb   && rate < 100) rate = Math.min(100, rate + 20);
+    if (s.elixir && rate < 100) rate = Math.min(100, rate + 50);
+
+    els.gold.textContent    = s.gold.toLocaleString();
+    els.essence.textContent = s.essence;
+    els.stageV.textContent  = `${s.stage + 1} / 15`;
+    els.emoji.textContent   = cur.emoji;
+    els.name.textContent    = cur.name;
+    els.badge.textContent   = `STAGE ${s.stage + 1}`;
+    els.sellDisp.textContent = SELL_PRICE[s.stage] > 0
+        ? SELL_PRICE[s.stage].toLocaleString() + ' G'
+        : '—';
+
+    const pct = ((s.stage + 1) / 15) * 100;
+    els.progBar.style.width = pct + '%';
+    els.progTxt.textContent = `${s.stage + 1} / 15`;
+
+    if (s.stage < 14) {
+        els.cost.textContent = cost.toLocaleString() + 'G';
+        els.rate.textContent = rate + '%';
+    } else {
+        els.cost.textContent = '—';
+        els.rate.textContent = '—';
+    }
+
+    els.activeItems.innerHTML = '';
+    if (s.herb)   els.activeItems.innerHTML += '<span class="active-item-badge badge-herb">🍀 물풀 +20%</span>';
+    if (s.shield) els.activeItems.innerHTML += '<span class="active-item-badge badge-shield">🛡️ 가호 (소멸 방지)</span>';
+    if (s.elixir) els.activeItems.innerHTML += '<span class="active-item-badge badge-rebirth">⚡ 비약 +50%</span>';
+
+    document.querySelectorAll('.stage-row').forEach((row, i) => {
+        row.className = 'stage-row';
+        if      (i < s.stage)   row.classList.add('done');
+        else if (i === s.stage) row.classList.add('current');
+    });
+
+    updateBtns();
+    updateShopBtns();
+    renderQuickItems();
+}
+
+function updateBtns() {
+    const cost = state.stage < 14 ? COSTS[state.stage] : 0;
+    const canAfford = state.gold >= cost;
+    const isFinal   = state.stage >= 14;
+
+    els.upBtn.disabled  = !canAfford || isFinal || state.isAnimating || state.cleared;
+    els.sellBtn.disabled = isFinal || state.isAnimating || state.cleared || SELL_PRICE[state.stage] <= 0;
+
+    if (isFinal) {
+        els.upBtn.textContent = '🔱 용신 달성!';
+        els.upBtn.classList.add('clear');
+    } else {
+        els.upBtn.textContent = canAfford ? '⚡ 강화하기' : '💰 골드 부족';
+        els.upBtn.classList.remove('clear');
+    }
+
+    // 판매 버튼에 금액 표시
+    if (!isFinal && SELL_PRICE[state.stage] > 0 && !state.isAnimating) {
+        els.sellBtn.textContent = `💰 판매 (${SELL_PRICE[state.stage].toLocaleString()}G)`;
+    } else {
+        els.sellBtn.textContent = '💰 판매';
+    }
+}
+
+function updateShopBtns() {
+    els.herbBtn.disabled     = state.essence < 40;
+    els.shieldBtn.disabled   = state.essence < 80;
+    els.rebirth2Btn.disabled = state.essence < 120;
+    els.elixirBtn.disabled   = state.essence < 200;
+    els.herbBtn.textContent     = '구매';
+    els.shieldBtn.textContent   = '구매';
+    els.rebirth2Btn.textContent = '구매';
+    els.elixirBtn.textContent   = '구매';
+}
+
+// ─── 강화 ────────────────────────────────────────────────
+function doUpgrade() {
+    if (state.isAnimating || state.cleared || state.stage >= 14) return;
+    const cost = COSTS[state.stage];
+    if (state.gold < cost) return;
+
+    state.gold -= cost;
+    state.isAnimating = true;
+    els.result.textContent = '';
+    els.result.className = 'result-msg';
+    els.gold.textContent = state.gold.toLocaleString();
+    updateBtns();
+
+    els.emoji.style.transform = 'scale(1.1)';
+
+    let rate = STAGES[state.stage].rate;
+    if (state.herb)   { rate = Math.min(100, rate + 20); state.herb   = false; }
+    if (state.elixir) { rate = Math.min(100, rate + 50); state.elixir = false; }
+
+    setTimeout(() => {
+        els.emoji.style.transform = '';
+        if (Math.random() * 100 < rate) onSuccess();
+        else onFail();
+    }, 200);
+}
+
+function onSuccess() {
+    state.stage++;
+    showOverlay('success');
+    AudioMgr.success();
+    els.result.textContent = '✨ 진화!';
+    els.result.className   = 'result-msg result-success';
+    renderUI();
+    if (state.stage === 14) setTimeout(showClear, 600);
+    setTimeout(() => { if (!state.cleared) { els.result.textContent = ''; } state.isAnimating = false; renderUI(); }, 800);
+}
+
+function onFail() {
+    const diedStage = state.stage;
+
+    if (state.shield) {
+        // 가호 발동 — 소멸 방지, 1단계 하락
+        state.shield = false;
+        showOverlay('fail');
+        AudioMgr.shield();
+        els.result.textContent = '🛡️ 가호 발동! 생존';
+        els.result.className   = 'result-msg result-sell'; // 노란 계열
+        state.stage = Math.max(0, state.stage - 1);
+        renderUI();
+        showToast('🛡️ 심해의 가호 발동! 소멸을 막고 1단계 하락');
+        setTimeout(() => { els.result.textContent = ''; state.isAnimating = false; renderUI(); }, 800);
+        return;
+    }
+
+    // 소멸
+    showOverlay('fail');
+    AudioMgr.fail();
+    els.result.textContent = '☠️ 소멸...';
+    els.result.className   = 'result-msg result-fail';
+
+    // 소멸 애니메이션
+    els.emoji.classList.add('dying');
+
+    // 애니메이션 끝난 후 정수 드랍 + 리셋
+    setTimeout(() => {
+        const [minE, maxE] = ESSENCE_DROP[diedStage];
+        const totalEssence = minE + Math.floor(Math.random() * (maxE - minE + 1));
+        showCollectZone(totalEssence);
+
+        state.stage = 0;
+        els.emoji.classList.remove('dying');
+        els.emoji.style.opacity = '0';
+
+        renderUI();
+
+        // 살짝 딜레이 후 새 생물 등장
+        setTimeout(() => {
+            els.emoji.style.opacity = '1';
+            els.emoji.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => { els.emoji.style.transition = ''; }, 300);
+        }, 150);
+
+        setTimeout(() => {
+            els.result.textContent = '';
+            state.isAnimating = false;
+            renderUI();
+        }, 800);
+    }, 400);
+}
+
+// ─── 판매 ────────────────────────────────────────────────
+function doSell() {
+    if (state.isAnimating || state.cleared) return;
+    if (SELL_PRICE[state.stage] <= 0) return;
+
+    const price = SELL_PRICE[state.stage];
+    state.isAnimating = true;
+
+    showOverlay('sell');
+    AudioMgr.sell();
+    els.result.textContent = `💰 ${price.toLocaleString()}G 판매!`;
+    els.result.className   = 'result-msg result-sell';
+
+    els.emoji.classList.add('selling');
+
+    setTimeout(() => {
+        state.gold += price;
+        state.stage = 0;
+        els.emoji.classList.remove('selling');
+        els.emoji.style.opacity = '0';
+        renderUI();
+
+        setTimeout(() => {
+            els.emoji.style.opacity = '1';
+            els.emoji.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => { els.emoji.style.transition = ''; }, 300);
+        }, 120);
+
+        setTimeout(() => {
+            els.result.textContent = '';
+            state.isAnimating = false;
+            renderUI();
+        }, 600);
+    }, 350);
+}
+
+// ─── 오버레이 ─────────────────────────────────────────────
+function showOverlay(type) {
+    els.overlay.className = `effect-overlay ${type} active`;
+    setTimeout(() => { els.overlay.className = `effect-overlay ${type}`; }, 500);
+}
+
+// ─── 정수 수집 ────────────────────────────────────────────
+function showCollectZone(amount) {
+    state.pendingEssence = amount;
+    els.collectZone.innerHTML = `💎 정수 <strong style="font-size:1.15em;color:#a5f3fc">+${amount}</strong>개 획득 &mdash; 클릭하여 수집`;
+    els.collectZone.classList.add('active');
+    clearTimeout(collectAutoTimer);
+    collectAutoTimer = setTimeout(() => collectEssence(), 5000);
+}
+
+function renderQuickItems() {
+    if (!els.quickItems) return;
+    const hasAny = ITEM_DEFS.some(item =>
+        (state.inventory[item.id] || 0) > 0 || state[item.id]
+    );
+    if (!hasAny) { els.quickItems.innerHTML = ''; return; }
+
+    els.quickItems.innerHTML = ITEM_DEFS.map(item => {
+        const count  = state.inventory[item.id] || 0;
+        const active = state[item.id]; // herb/shield/elixir: boolean
+        if (count === 0 && !active) return '';
+
+        const isActive = active === true;
+        const canUse   = count > 0 && !isActive && !state.isAnimating && !state.cleared;
+        return `<button class="qi-btn${isActive ? ' qi-active' : ''}"
+            ${canUse ? `onclick="useItem('${item.id}')"` : 'disabled'}>
+            ${item.emoji}&thinsp;<span class="qi-count">×${count}${isActive ? ' 활성' : ''}</span>
+        </button>`;
+    }).join('');
+}
+
+function collectEssence() {
+    if (state.pendingEssence <= 0) return;
+    clearTimeout(collectAutoTimer);
+    const amount = state.pendingEssence;
+    state.essence += amount;
+    els.essence.textContent = state.essence;
+    state.pendingEssence = 0;
+    els.collectZone.classList.remove('active');
+    AudioMgr.collect();
+    showToast(`💎 정수 +${amount}개 수집!`);
+    updateShopBtns();
+}
+
+// ─── 아이템 구매 ──────────────────────────────────────────
+function buyItem(type) {
+    const def = ITEM_DEFS.find(d => d.id === type);
+    if (!def || state.essence < def.cost) return;
+    state.essence -= def.cost;
+    state.inventory[type]++;
+    els.essence.textContent = state.essence;
+    showToast(`${def.emoji} ${def.name} 구매! 보관함에 추가됨`);
+    renderUI();
+}
+
+function useItem(type) {
+    const def = ITEM_DEFS.find(d => d.id === type);
+    if (!def || state.inventory[type] <= 0) return;
+
+    if (type === 'rebirth2') {
+        if (state.isAnimating || state.cleared) return;
+        state.inventory[type]--;
+        const target = 6 + Math.floor(Math.random() * 6); // index 6~11 = 7~12단계
+        state.stage = target;
+        AudioMgr.rebirth();
+        showToast(`🌠 천상의 도약! ${STAGES[target].name} (${target + 1}단계)으로 이동!`);
+        renderUI();
+        return;
+    }
+
+    // herb / shield: 효과 대기 (중복 불가)
+    if (state[type]) return;
+    state.inventory[type]--;
+    state[type] = true;
+    const msgs = {
+        herb:   '🍀 용의 물풀 사용! 다음 강화 성공률 +20%',
+        shield: '🛡️ 심해의 가호 사용! 다음 실패 시 소멸 방지',
+    };
+    showToast(msgs[type]);
+    renderUI();
+}
+
+// ─── 클리어 ───────────────────────────────────────────────
+function showClear() {
+    state.cleared = true;
+    els.clearPopup.classList.add('active');
+    startParticles();
+    els.result.textContent = '👑 용신 달성!';
+    els.result.className   = 'result-msg result-clear';
+}
+
+function restartGame() {
+    state = { gold: 400, essence: 0, stage: 0, herb: false, shield: false, elixir: false, inventory: { herb: 0, rebirth2: 0, shield: 0, elixir: 0 }, pendingEssence: 0, isAnimating: false, cleared: false };
+    clearTimeout(collectAutoTimer);
+    els.collectZone.classList.remove('active');
+    els.clearPopup.classList.remove('active');
+    els.result.textContent = '';
+    els.emoji.classList.remove('dying', 'selling');
+    els.emoji.style.opacity    = '1';
+    els.emoji.style.transition = '';
+    stopParticles();
+    renderUI();
+}
+
+// ─── 파티클 ───────────────────────────────────────────────
+const canvas = document.getElementById('particle-canvas');
+const ctx    = canvas.getContext('2d');
+let particles = [], animId = null;
+
+function startParticles() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    particles = [];
+    for (let i = 0; i < 140; i++) {
+        particles.push({
+            x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 3.5, vy: -2.2 - Math.random() * 3.5,
+            size: 4 + Math.random() * 8,
+            color: `hsl(${38 + Math.random() * 48}, 100%, 62%)`, life: 1,
+        });
+    }
+    animateParticles();
+}
+
+function animateParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles = particles.filter(p => p.life > 0);
+    particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.life -= 0.008;
+        ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    if (particles.length > 0) animId = requestAnimationFrame(animateParticles);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function stopParticles() {
+    if (animId) cancelAnimationFrame(animId);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles = [];
+}
+
+// ─── 오디오 ───────────────────────────────────────────────
+const AudioMgr = (() => {
+    let actx = null, master = null, comp = null;
+    let bgNodes = [], isMuted = false, bgRunning = false;
+    let melodyTimer = null, chordTimer = null;
+
+    function getCtx() {
+        if (!actx) {
+            actx = new (window.AudioContext || window.webkitAudioContext)();
+            // 다이나믹 컴프레서 — 클리핑 방지
+            comp = actx.createDynamicsCompressor();
+            comp.threshold.value = -16;
+            comp.knee.value = 10;
+            comp.ratio.value = 4;
+            comp.attack.value = 0.003;
+            comp.release.value = 0.2;
+            master = actx.createGain();
+            master.gain.value = 0.8;
+            master.connect(comp);
+            comp.connect(actx.destination);
+        }
+        if (actx.state === 'suspended') actx.resume();
+        return actx;
+    }
+
+    function _tone(freq, vol, attack, hold, release, type = 'sine', at = 0) {
+        const c = getCtx();
+        const osc = c.createOscillator();
+        const g   = c.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        const t0 = c.currentTime + at;
+        g.gain.setValueAtTime(0, t0);
+        g.gain.linearRampToValueAtTime(vol, t0 + attack);
+        g.gain.setValueAtTime(vol, t0 + attack + hold);
+        g.gain.linearRampToValueAtTime(0, t0 + attack + hold + release);
+        osc.connect(g); g.connect(master);
+        osc.start(t0);
+        osc.stop(t0 + attack + hold + release + 0.05);
+    }
+
+    function startBg() {
+        if (bgRunning || isMuted) return;
+        bgRunning = true;
+        const c = getCtx();
+
+        // === LAYER 1: 저음 드론 55Hz — LFO 트레몰로로 물속 느낌 ===
+        const bass = c.createOscillator();
+        const bassG = c.createGain();
+        const lfo = c.createOscillator();
+        const lfoG = c.createGain();
+        bass.type = 'sine';
+        bass.frequency.value = 55;
+        lfo.type = 'sine';
+        lfo.frequency.value = 0.18;
+        lfoG.gain.value = 0.10;
+        lfo.connect(lfoG); lfoG.connect(bassG.gain);
+        bassG.gain.value = 0.40;
+        bass.connect(bassG); bassG.connect(master);
+        bass.start(); lfo.start();
+        bgNodes.push(bass, lfo);
+
+        // === LAYER 2: 110Hz 배음 ===
+        const mid = c.createOscillator();
+        const midG = c.createGain();
+        mid.type = 'sine';
+        mid.frequency.value = 110;
+        midG.gain.value = 0.20;
+        mid.connect(midG); midG.connect(master);
+        mid.start();
+        bgNodes.push(mid);
+
+        // === LAYER 3: D단조 패드 (D3/F3/A3) — 서서히 페이드인 ===
+        [[146.8, 0.16], [174.6, 0.13], [220.0, 0.12]].forEach(([freq, vol]) => {
+            const osc = c.createOscillator();
+            const g   = c.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            g.gain.setValueAtTime(0, c.currentTime);
+            g.gain.linearRampToValueAtTime(vol, c.currentTime + 3.5);
+            osc.connect(g); g.connect(master);
+            osc.start();
+            bgNodes.push(osc);
+        });
+
+        scheduleMelody();
+        scheduleChord();
+    }
+
+    // D단조 펜타토닉 멜로디 (D3~D4 범위, 자주 등장)
+    const PENTA = [146.8, 174.6, 196.0, 220.0, 261.6, 293.7, 349.2, 392.0];
+    function scheduleMelody() {
+        if (!bgRunning || isMuted) return;
+        const freq = PENTA[Math.floor(Math.random() * PENTA.length)];
+        _tone(freq, 0.13 + Math.random() * 0.07, 0.25, 0.2, 1.6, 'triangle');
+        melodyTimer = setTimeout(scheduleMelody, 1400 + Math.random() * 2200);
+    }
+
+    // 저음 화음 스웰 — 깊은 바다 느낌
+    function scheduleChord() {
+        if (!bgRunning || isMuted) return;
+        [[73.4, 0.12], [110.0, 0.10], [130.8, 0.08]].forEach(([f, v]) => {
+            _tone(f, v, 1.8, 1.0, 2.8, 'sine');
+        });
+        chordTimer = setTimeout(scheduleChord, 6500 + Math.random() * 4500);
+    }
+
+    function stopBg() {
+        bgRunning = false;
+        clearTimeout(melodyTimer);
+        clearTimeout(chordTimer);
+        bgNodes.forEach(n => { try { n.stop(); } catch(e) {} });
+        bgNodes = [];
+    }
+
+    function toggle() {
+        isMuted = !isMuted;
+        const btn = document.getElementById('music-btn');
+        if (isMuted) {
+            btn.textContent = '🔇';
+            stopBg();
+        } else {
+            btn.textContent = '🔊';
+            startBg();
+        }
+    }
+
+    // ── 효과음 ──
+    function success() {
+        if (isMuted) return;
+        [[261.6, 0.18], [329.6, 0.15], [392.0, 0.14], [523.2, 0.20]].forEach(([f, v], i) => {
+            _tone(f, v, 0.02, 0.05, 0.22, 'sine', i * 0.075);
+        });
+    }
+
+    function fail() {
+        if (isMuted) return;
+        [220, 174.6, 130.8].forEach((f, i) => {
+            _tone(f, 0.22, 0.01, 0.05, 0.3, 'sawtooth', i * 0.09);
+        });
+        _tone(55, 0.20, 0.01, 0.15, 0.55, 'sawtooth', 0);
+    }
+
+    function shield() {
+        if (isMuted) return;
+        _tone(293.7, 0.18, 0.04, 0.12, 0.4, 'triangle', 0);
+        _tone(440, 0.14, 0.04, 0.1, 0.45, 'triangle', 0.14);
+    }
+
+    function sell() {
+        if (isMuted) return;
+        [[523.2, 0.14], [659.2, 0.12], [783.9, 0.15]].forEach(([f, v], i) => {
+            _tone(f, v, 0.02, 0.04, 0.28, 'sine', i * 0.065);
+        });
+    }
+
+    function collect() {
+        if (isMuted) return;
+        [[880, 0.12], [1046.5, 0.10], [1318.5, 0.08]].forEach(([f, v], i) => {
+            _tone(f, v, 0.01, 0.02, 0.45, 'sine', i * 0.055);
+        });
+    }
+
+    function rebirth() {
+        if (isMuted) return;
+        const c = getCtx();
+        const osc = c.createOscillator();
+        const g   = c.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(180, c.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(720, c.currentTime + 0.38);
+        osc.frequency.exponentialRampToValueAtTime(360, c.currentTime + 0.75);
+        g.gain.setValueAtTime(0, c.currentTime);
+        g.gain.linearRampToValueAtTime(0.22, c.currentTime + 0.12);
+        g.gain.linearRampToValueAtTime(0, c.currentTime + 0.85);
+        osc.connect(g); g.connect(master);
+        osc.start(c.currentTime);
+        osc.stop(c.currentTime + 0.9);
+        [[880, 0.10], [1174.7, 0.08]].forEach(([f, v], i) => {
+            _tone(f, v, 0.05, 0.1, 0.5, 'triangle', 0.2 + i * 0.12);
+        });
+    }
+
+    // 첫 클릭 시 배경음 시작 (브라우저 자동재생 정책)
+    document.addEventListener('click', function _startOnce() {
+        if (!bgRunning && !isMuted) startBg();
+    }, { once: true });
+
+    return { toggle, success, fail, shield, sell, collect, rebirth };
+})();
+
+// ─── 배경 버블 ────────────────────────────────────────────
+function spawnBubbles() {
+    const c = document.getElementById('bubbles');
+    for (let i = 0; i < 18; i++) {
+        const b = document.createElement('div');
+        b.className = 'bubble';
+        const sz = 12 + Math.random() * 55;
+        b.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;animation-duration:${9+Math.random()*14}s;animation-delay:${-Math.random()*12}s;`;
+        c.appendChild(b);
+    }
+}
+
+// ─── 토스트 ───────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg) {
+    els.toast.textContent = msg;
+    els.toast.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2300);
+}
+
+init();
+</script>
+</body>
+</html>
