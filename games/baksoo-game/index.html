@@ -299,50 +299,6 @@ body{background:#080810;color:#c0d0e0;font-family:'DotGothic16','Courier New',mo
   flex-shrink:0;
 }
 
-/* ── 터치 조작 오버레이 ── */
-#touch-ctrl{
-  display:none;
-  position:fixed;
-  bottom:0;left:0;right:0;
-  padding:10px 18px 18px;
-  justify-content:space-between;
-  align-items:flex-end;
-  z-index:500;
-  pointer-events:none;
-  background:linear-gradient(transparent, rgba(0,0,0,0.55));
-}
-#dpad-bk,#dbk-e{pointer-events:all;}
-#dpad-bk{
-  display:flex;flex-direction:column;align-items:center;gap:4px;
-  user-select:none;-webkit-user-select:none;
-}
-.dpbk-mid{display:flex;gap:4px;align-items:center;}
-.dpbk-c{width:50px;height:50px;}
-.dpbk{
-  width:54px;height:54px;
-  background:rgba(192,128,64,0.2);
-  border:2px solid #c08040;
-  border-radius:10px;
-  color:#e0b060;
-  font-size:1.35rem;
-  font-family:'DotGothic16',monospace;
-  cursor:pointer;
-  touch-action:manipulation;
-  user-select:none;-webkit-user-select:none;
-  transition:background 0.1s;
-}
-.dpbk:active{background:rgba(192,128,64,0.5);}
-#dbk-e{
-  width:66px;height:66px;
-  border-radius:50%;
-  font-size:1.1rem;
-  letter-spacing:0.05em;
-}
-#touch-ctrl.active{display:flex;}
-@media(min-width:1024px){
-  /* 충분히 넓은 화면에서는 D-pad 숨김 */
-  #touch-ctrl.active{display:none;}
-}
 </style>
 </head>
 <body>
@@ -738,25 +694,50 @@ function collides(nx, ny) {
 // ════════════════════════════════════════════
 const keys = {};
 let charX=450, charY=460;
-const SPEED=2.2;
+const SPEED=5.5;
 let rafId=null;
+// 오브젝트 클릭 시 이동 목표
+let walkTarget=null; // { objId, stuckFrames }
 
 document.addEventListener('keydown', e => {
   const mv=['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','a','A','s','S','d','D','w','W'];
   if (mv.includes(e.key)) e.preventDefault();
+  walkTarget=null; // 키보드 입력 시 자동이동 취소
   keys[e.key]=true;
   if (e.key==='e'||e.key==='E') checkInteract();
 });
 document.addEventListener('keyup', e => { keys[e.key]=false; });
 
 function gameLoop() {
-  let dx=0, dy=0;
-  if (keys['ArrowLeft'] ||keys['a']||keys['A']) dx=-SPEED;
-  if (keys['ArrowRight']||keys['d']||keys['D']) dx= SPEED;
-  if (keys['ArrowUp']   ||keys['w']||keys['W']) dy=-SPEED;
-  if (keys['ArrowDown'] ||keys['s']||keys['S']) dy= SPEED;
-
   const el=document.getElementById('character');
+  let dx=0, dy=0;
+
+  if (walkTarget) {
+    const box=OBJ_LAYOUT[walkTarget.objId];
+    const cx=charX+18, cy=charY+26;
+    const objCX=box.x+box.w/2, objCY=box.y+box.h/2;
+    // 오브젝트 경계까지의 거리
+    const dist=distToBox(cx, cy, box);
+    if (dist < 55) {
+      // 도착 → 행동창 표시
+      const tid=walkTarget.objId;
+      walkTarget=null;
+      interact(tid);
+    } else {
+      // 오브젝트 중심 방향으로 이동
+      const tdx=objCX-cx, tdy=objCY-cy;
+      const len=Math.hypot(tdx,tdy)||1;
+      dx=tdx/len*SPEED; dy=tdy/len*SPEED;
+      walkTarget.stuckFrames=(walkTarget.stuckFrames||0)+1;
+      if (walkTarget.stuckFrames>220) walkTarget=null; // 막혀서 못가면 취소
+    }
+  } else {
+    if (keys['ArrowLeft'] ||keys['a']||keys['A']) dx=-SPEED;
+    if (keys['ArrowRight']||keys['d']||keys['D']) dx= SPEED;
+    if (keys['ArrowUp']   ||keys['w']||keys['W']) dy=-SPEED;
+    if (keys['ArrowDown'] ||keys['s']||keys['S']) dy= SPEED;
+  }
+
   if (dx!==0||dy!==0) {
     const nx=charX+dx, ny=charY+dy;
     if (!collides(nx, charY)) charX=Math.max(8, Math.min(910, nx));
@@ -791,6 +772,7 @@ function distToBox(px, py, box) {
 }
 
 let nearObj=null;
+let choiceOpenObj=null; // 현재 행동창이 열린 오브젝트
 
 function updateProximity() {
   const cx=charX+18, cy=charY+26;
@@ -803,6 +785,11 @@ function updateProximity() {
     if (nearObj) { setHint(nearObj,false); }
     nearObj=closest;
     if (nearObj) { setHint(nearObj,true); }
+  }
+  // 행동창이 열려 있는데 해당 오브젝트에서 멀어지면 자동으로 닫기
+  if (choiceOpenObj) {
+    const box=OBJ_LAYOUT[choiceOpenObj];
+    if (!box || distToBox(cx, cy, box) > 130) closeChoice();
   }
 }
 
@@ -913,7 +900,8 @@ const DLGS={
 function rnd(a){return a[Math.floor(Math.random()*a.length)];}
 
 function interact(id) {
-  if(document.getElementById('choice-popup').style.display==='block') return;
+  closeChoice(); // 이전 행동창 닫고 새 행동창 열기
+  choiceOpenObj = id;
   switch(id){
     case 'fridge':  doFridge(); break;
     case 'bed':     doBed(); break;
@@ -1059,7 +1047,7 @@ function showChoice(title, choices){
   popup.style.left=rx+'px'; popup.style.top=ry+'px';
   popup.style.display='block';
 }
-function closeChoice(){ document.getElementById('choice-popup').style.display='none'; }
+function closeChoice(){ document.getElementById('choice-popup').style.display='none'; choiceOpenObj=null; }
 
 // ════════════════════════════════════════════
 // STATS
@@ -1775,7 +1763,7 @@ async function checkMusicTransition(){
 async function runOpening(){
   const lines=[
     {id:'op1',text:'2026년 봄. 그는 회사를 그만뒀다.'},
-    {id:'op2',text:'아니, 정확히는 — 회사가 그를 버렸다.'},
+    {id:'op2',text:'아니, 정확히는 회사가 그를 버렸다.'},
     {id:'op3',text:'이제 그는 방 안에만 있다.'},
     {id:'op4',text:'아기거미는 그의 유일한 친구다.'},
   ];
@@ -1800,9 +1788,7 @@ async function startGame(){
   addLog('▶ Day 1. 2026년 봄. 방 안에서 하루가 시작된다.','ev');
   // auto-start music (requires user gesture — button click satisfies this)
   await startMusic();
-  // 모바일 터치 조작 활성화
   scaleGame();
-  document.getElementById('touch-ctrl').classList.add('active');
 }
 
 // ── 모바일 반응형 스케일링 ───────────────────────────────
@@ -1823,57 +1809,98 @@ function scaleGame() {
 }
 window.addEventListener('resize', scaleGame);
 
-// ── 터치 D-pad 컨트롤 ─────────────────────────────────────
-(function setupTouchControls() {
-  const BK_DIR = {
-    'dbk-up':    'ArrowUp',
-    'dbk-down':  'ArrowDown',
-    'dbk-left':  'ArrowLeft',
-    'dbk-right': 'ArrowRight',
-  };
-  Object.entries(BK_DIR).forEach(([id, key]) => {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    btn.addEventListener('touchstart', e => {
-      e.preventDefault();
-      keys[key] = true;
-    }, { passive: false });
-    btn.addEventListener('touchend', e => {
-      e.preventDefault();
-      keys[key] = false;
-    }, { passive: false });
-    btn.addEventListener('touchcancel', () => { keys[key] = false; });
-    // 마우스로도 테스트 가능하게
-    btn.addEventListener('mousedown', () => keys[key] = true);
-    btn.addEventListener('mouseup', () => keys[key] = false);
-    btn.addEventListener('mouseleave', () => keys[key] = false);
-  });
-
-  const eBtn = document.getElementById('dbk-e');
-  if (eBtn) {
-    eBtn.addEventListener('touchstart', e => {
-      e.preventDefault();
-      checkInteract();
-    }, { passive: false });
-    eBtn.addEventListener('click', () => checkInteract());
+// ── 터치 스와이프 + 마우스 클릭 조작 ──────────────────────
+(function setupInputControls() {
+  function simulateMove(dirKey) {
+    keys[dirKey] = true;
+    setTimeout(() => { keys[dirKey] = false; }, 220);
   }
+
+  const room = document.getElementById('room');
+  if (!room) return;
+
+  // 터치 스와이프
+  let touchStartX = 0, touchStartY = 0;
+  room.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    touchStartX = t.clientX;
+    touchStartY = t.clientY;
+  }, { passive: true });
+
+  room.addEventListener('touchend', e => {
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartX;
+    const dy = t.clientY - touchStartY;
+    const adx = Math.abs(dx), ady = Math.abs(dy);
+    if (adx < 20 && ady < 20) {
+      checkInteract();
+    } else if (adx >= ady) {
+      simulateMove(dx > 0 ? 'ArrowRight' : 'ArrowLeft');
+    } else {
+      simulateMove(dy > 0 ? 'ArrowDown' : 'ArrowUp');
+    }
+  }, { passive: true });
+
+  // 마우스 (누르는 동안 계속 이동, 대각선 지원, 오브젝트 클릭 시 자동이동)
+  let mouseHeldKeys = [];
+
+  function getRoomPos(e) {
+    const rect = room.getBoundingClientRect();
+    const scaler = document.getElementById('game-scaler');
+    const m = (scaler ? scaler.style.transform : '').match(/scale\(([\d.]+)\)/);
+    const scale = m ? parseFloat(m[1]) : 1;
+    return { x: (e.clientX - rect.left) / scale, y: (e.clientY - rect.top) / scale };
+  }
+
+  // 클릭 위치가 어떤 오브젝트 박스 안(또는 근처)인지 반환
+  function findClickedObj(px, py) {
+    const PAD = 18;
+    for (const [id, box] of Object.entries(OBJ_LAYOUT)) {
+      if (px >= box.x - PAD && px <= box.x + box.w + PAD &&
+          py >= box.y - PAD && py <= box.y + box.h + PAD) return id;
+    }
+    return null;
+  }
+
+  function getClickDirs(px, py) {
+    const dx = px - (charX + 18);
+    const dy = py - (charY + 26);
+    const adx = Math.abs(dx), ady = Math.abs(dy);
+    if (adx < 30 && ady < 30) return 'interact';
+    const dirs = [];
+    if (adx >= 20) dirs.push(dx > 0 ? 'ArrowRight' : 'ArrowLeft');
+    if (ady >= 20) dirs.push(dy > 0 ? 'ArrowDown' : 'ArrowUp');
+    return dirs;
+  }
+
+  function releaseMouseKeys() {
+    mouseHeldKeys.forEach(k => { keys[k] = false; });
+    mouseHeldKeys = [];
+  }
+
+  room.addEventListener('mousedown', e => {
+    const { x: px, y: py } = getRoomPos(e);
+    // 오브젝트 클릭 감지 → 자동 이동 후 상호작용
+    const objId = findClickedObj(px, py);
+    if (objId) {
+      releaseMouseKeys();
+      walkTarget = { objId, stuckFrames: 0 };
+      return;
+    }
+    // 일반 방향 이동
+    walkTarget = null;
+    const d = getClickDirs(px, py);
+    if (d === 'interact') { checkInteract(); return; }
+    releaseMouseKeys();
+    mouseHeldKeys = d;
+    mouseHeldKeys.forEach(k => { keys[k] = true; });
+  });
+  room.addEventListener('mouseup', releaseMouseKeys);
+  room.addEventListener('mouseleave', releaseMouseKeys);
 })();
 
 runOpening();
 </script>
 
-<!-- 모바일 터치 조작 오버레이 (게임 화면에서만 표시) -->
-<div id="touch-ctrl">
-  <div id="dpad-bk">
-    <button class="dpbk" id="dbk-up" aria-label="위">▲</button>
-    <div class="dpbk-mid">
-      <button class="dpbk" id="dbk-left" aria-label="왼쪽">◀</button>
-      <div class="dpbk-c"></div>
-      <button class="dpbk" id="dbk-right" aria-label="오른쪽">▶</button>
-    </div>
-    <button class="dpbk" id="dbk-down" aria-label="아래">▼</button>
-  </div>
-  <button class="dpbk" id="dbk-e" aria-label="상호작용 (E)">E</button>
-</div>
 </body>
 </html>

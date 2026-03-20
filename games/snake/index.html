@@ -24,6 +24,12 @@
       font-size: 1rem;
     }
     #score-board span { color: #a8dadc; font-weight: bold; }
+
+    /* 캔버스 래퍼 */
+    #game-wrap {
+      position: relative;
+      line-height: 0; /* 인라인 요소 간격 제거 */
+    }
     canvas {
       border: 3px solid #e94560;
       border-radius: 4px;
@@ -31,14 +37,20 @@
       display: block;
       touch-action: none;
     }
+
+    /* 캔버스 내부 오버레이 (idle / paused / gameover) */
     #overlay {
+      display: none;
       position: absolute;
-      display: flex;
+      inset: 0;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 16px;
+      background: rgba(10, 10, 30, 0.82);
+      border-radius: 2px;
     }
+    #overlay.show { display: flex; }
     #overlay h2 { font-size: 2rem; color: #e94560; }
     #overlay p { color: #a8dadc; font-size: 1rem; }
     button {
@@ -52,11 +64,14 @@
       transition: background 0.2s;
     }
     button:hover { background: #c73652; }
+
+    /* 캔버스 바로 아래 조작 안내 */
     #controls {
-      margin-top: 14px;
-      font-size: 0.8rem;
-      color: #557;
+      margin-top: 10px;
+      font-size: 0.78rem;
+      color: #556;
       text-align: center;
+      line-height: 1;
     }
 
     @media (pointer: coarse), (max-width: 600px) {
@@ -75,15 +90,15 @@
     <div>점수: <span id="score">0</span></div>
     <div>최고 점수: <span id="high-score">0</span></div>
   </div>
-  <div style="position:relative">
+  <div id="game-wrap">
     <canvas id="game" width="400" height="400"></canvas>
-    <div id="overlay">
+    <div id="overlay" class="show">
       <h2 id="overlay-title">뱀 게임</h2>
       <p id="overlay-msg">방향키 또는 WASD로 조종하세요</p>
       <button id="start-btn">시작하기</button>
     </div>
   </div>
-  <div id="controls">키보드: 방향키 / WASD · P: 일시정지 &nbsp;|&nbsp; 마우스: 클릭 &nbsp;|&nbsp; 모바일: 스와이프</div>
+  <div id="controls">키보드: 방향키 / WASD &nbsp;·&nbsp; P: 일시정지 &nbsp;·&nbsp; 마우스 클릭 / 터치 스와이프로 방향 전환</div>
 
   <script>
     const canvas = document.getElementById('game');
@@ -92,21 +107,22 @@
     const COLS = canvas.width / CELL;
     const ROWS = canvas.height / CELL;
 
-    let snake, dir, nextDir, food, score, highScore, gameLoop, state;
-    highScore = 0;
+    let snake, dir, nextDir, food, score, highScore = 0, gameLoop, state = 'idle';
 
-    const overlay = document.getElementById('overlay');
+    const overlay     = document.getElementById('overlay');
     const overlayTitle = document.getElementById('overlay-title');
-    const overlayMsg = document.getElementById('overlay-msg');
-    const startBtn = document.getElementById('start-btn');
-    const scoreEl = document.getElementById('score');
+    const overlayMsg  = document.getElementById('overlay-msg');
+    const startBtn    = document.getElementById('start-btn');
+    const scoreEl     = document.getElementById('score');
     const highScoreEl = document.getElementById('high-score');
+    const gameWrap    = document.getElementById('game-wrap');
 
+    // ── 초기화 ──────────────────────────────────────────────
     function init() {
-      snake = [ { x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 } ];
-      dir = { x: 1, y: 0 };
+      snake   = [ { x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 } ];
+      dir     = { x: 1, y: 0 };
       nextDir = { x: 1, y: 0 };
-      score = 0;
+      score   = 0;
       scoreEl.textContent = 0;
       placeFood();
     }
@@ -119,11 +135,12 @@
       food = pos;
     }
 
+    // ── 게임 루프 ────────────────────────────────────────────
     function step() {
       dir = nextDir;
       const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
       if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) { endGame(); return; }
-      if (snake.some(s => s.x === head.x && s.y === head.y)) { endGame(); return; }
+      if (snake.some(s => s.x === head.x && s.y === head.y))             { endGame(); return; }
       snake.unshift(head);
       if (head.x === food.x && head.y === food.y) {
         score++;
@@ -134,14 +151,21 @@
       draw();
     }
 
+    // ── 렌더링 ──────────────────────────────────────────────
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // 격자
       ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-      for (let x = 0; x < COLS; x++) { for (let y = 0; y < ROWS; y++) { ctx.strokeRect(x * CELL, y * CELL, CELL, CELL); } }
+      for (let x = 0; x < COLS; x++)
+        for (let y = 0; y < ROWS; y++)
+          ctx.strokeRect(x * CELL, y * CELL, CELL, CELL);
+      if (!food || !snake) return;
+      // 먹이
       ctx.fillStyle = '#e94560';
       ctx.beginPath();
       ctx.arc(food.x * CELL + CELL / 2, food.y * CELL + CELL / 2, CELL / 2 - 2, 0, Math.PI * 2);
       ctx.fill();
+      // 뱀
       snake.forEach((seg, i) => {
         const ratio = 1 - i / snake.length;
         ctx.fillStyle = `hsl(${140 + i * 2}, 70%, ${35 + ratio * 25}%)`;
@@ -151,87 +175,107 @@
       });
     }
 
+    // ── 상태 전환 ────────────────────────────────────────────
+    function showOverlay(title, msg, btnLabel) {
+      overlayTitle.textContent = title;
+      overlayMsg.textContent   = msg;
+      startBtn.textContent     = btnLabel;
+      overlay.classList.add('show');
+    }
+
+    function hideOverlay() {
+      overlay.classList.remove('show');
+    }
+
     function startGame() {
-      init(); state = 'playing'; overlay.style.display = 'none';
-      clearInterval(gameLoop); gameLoop = setInterval(step, 120); draw();
+      init();
+      state = 'playing';
+      hideOverlay();
+      clearInterval(gameLoop);
+      gameLoop = setInterval(step, 120);
+      draw();
     }
 
     function endGame() {
-      clearInterval(gameLoop); state = 'gameover';
-      overlayTitle.textContent = '게임 오버'; overlayMsg.textContent = `점수: ${score}`;
-      startBtn.textContent = '다시 시작'; overlay.style.display = 'flex';
+      clearInterval(gameLoop);
+      state = 'gameover';
+      showOverlay('게임 오버', `점수: ${score}`, '다시 시작');
     }
 
     function togglePause() {
       if (state === 'playing') {
-        clearInterval(gameLoop); state = 'paused';
-        overlayTitle.textContent = '일시정지'; overlayMsg.textContent = 'P를 눌러 계속하기';
-        startBtn.textContent = '계속하기'; overlay.style.display = 'flex';
+        clearInterval(gameLoop);
+        state = 'paused';
+        showOverlay('일시정지', 'P를 눌러 계속하기', '계속하기');
       } else if (state === 'paused') {
-        state = 'playing'; overlay.style.display = 'none';
+        state = 'playing';
+        hideOverlay();
         gameLoop = setInterval(step, 120);
       }
     }
 
-    startBtn.addEventListener('click', startGame);
-    document.addEventListener('keydown', e => {
-      const map = {
-        ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 }, ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 },
-        w: { x: 0, y: -1 }, s: { x: 0, y: 1 }, a: { x: -1, y: 0 }, d: { x: 1, y: 0 }
-      };
-      if (e.key.toLowerCase() === 'p') { if (state === 'playing' || state === 'paused') togglePause(); return; }
-      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
-      const newDir = map[e.key];
-      if (!newDir || (newDir.x === -dir.x && newDir.y === -dir.y)) return;
-      nextDir = newDir;
-    });
-    state = 'idle'; draw();
-
-    // 방향 적용 공통 함수
+    // ── 방향 적용 ────────────────────────────────────────────
     function applyDir(nd) {
       if (!nd || (nd.x === -dir.x && nd.y === -dir.y)) return;
       nextDir = nd;
     }
 
-    // ── 모바일 스와이프 ──────────────────────────────
+    // ── 키보드 ──────────────────────────────────────────────
+    document.addEventListener('keydown', e => {
+      const map = {
+        ArrowUp: {x:0,y:-1}, ArrowDown: {x:0,y:1}, ArrowLeft: {x:-1,y:0}, ArrowRight: {x:1,y:0},
+        w: {x:0,y:-1}, s: {x:0,y:1}, a: {x:-1,y:0}, d: {x:1,y:0},
+        W: {x:0,y:-1}, S: {x:0,y:1}, A: {x:-1,y:0}, D: {x:1,y:0}
+      };
+      if (e.key.toLowerCase() === 'p') { if (state === 'playing' || state === 'paused') togglePause(); return; }
+      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+      if (state === 'idle' || state === 'gameover') { startGame(); return; }
+      const nd = map[e.key];
+      if (nd) applyDir(nd);
+    });
+
+    startBtn.addEventListener('click', startGame);
+
+    // ── 마우스 클릭 ──────────────────────────────────────────
+    gameWrap.addEventListener('click', e => {
+      if (e.target === startBtn) return;
+      if (state === 'idle' || state === 'gameover') { startGame(); return; }
+      if (state !== 'playing') return;
+      const rect  = canvas.getBoundingClientRect();
+      const scaleX = canvas.width  / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const cx = (e.clientX - rect.left) * scaleX;
+      const cy = (e.clientY - rect.top)  * scaleY;
+      const hx = snake[0].x * CELL + CELL / 2;
+      const hy = snake[0].y * CELL + CELL / 2;
+      const dx = cx - hx, dy = cy - hy;
+      if (dx === 0 && dy === 0) return;
+      applyDir(Math.abs(dx) > Math.abs(dy)
+        ? (dx > 0 ? {x:1,y:0} : {x:-1,y:0})
+        : (dy > 0 ? {x:0,y:1} : {x:0,y:-1}));
+    });
+
+    // ── 터치 스와이프 ────────────────────────────────────────
     let tsX = 0, tsY = 0;
-    canvas.addEventListener('touchstart', e => {
+    gameWrap.addEventListener('touchstart', e => {
       tsX = e.touches[0].clientX;
       tsY = e.touches[0].clientY;
       e.preventDefault();
       if (state === 'idle' || state === 'gameover') startGame();
     }, { passive: false });
 
-    canvas.addEventListener('touchend', e => {
+    gameWrap.addEventListener('touchend', e => {
       if (state !== 'playing') return;
       const dx = e.changedTouches[0].clientX - tsX;
       const dy = e.changedTouches[0].clientY - tsY;
-      if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return; // threshold 20px 미만 무시
-      const nd = Math.abs(dx) > Math.abs(dy)
+      if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+      applyDir(Math.abs(dx) > Math.abs(dy)
         ? (dx > 0 ? {x:1,y:0} : {x:-1,y:0})
-        : (dy > 0 ? {x:0,y:1} : {x:0,y:-1});
-      applyDir(nd);
+        : (dy > 0 ? {x:0,y:1} : {x:0,y:-1}));
     }, { passive: false });
 
-    // ── PC 마우스 클릭 ────────────────────────────────
-    canvas.addEventListener('click', e => {
-      if (state === 'idle' || state === 'gameover') { startGame(); return; }
-      if (state !== 'playing') return;
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const clickX = (e.clientX - rect.left) * scaleX;
-      const clickY = (e.clientY - rect.top) * scaleY;
-      const headX = snake[0].x * CELL + CELL / 2;
-      const headY = snake[0].y * CELL + CELL / 2;
-      const dx = clickX - headX;
-      const dy = clickY - headY;
-      if (dx === 0 && dy === 0) return;
-      const nd = Math.abs(dx) > Math.abs(dy)
-        ? (dx > 0 ? {x:1,y:0} : {x:-1,y:0})
-        : (dy > 0 ? {x:0,y:1} : {x:0,y:-1});
-      applyDir(nd);
-    });
+    // ── 초기 렌더 (리스너 등록 후 실행) ─────────────────────
+    draw();
   </script>
 </body>
 </html>
