@@ -4,7 +4,8 @@
       "Bash(python3:*)",
       "Bash(python:*)",
       "Bash(where python:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(grep -E \"\\\\.\\(html|css|js|jpg|png\\)$\")"
     ]
   }
 }

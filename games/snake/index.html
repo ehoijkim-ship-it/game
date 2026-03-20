@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>뱀 게임</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -28,6 +28,8 @@
       border: 3px solid #e94560;
       border-radius: 4px;
       background: #0f3460;
+      display: block;
+      touch-action: none;
     }
     #overlay {
       position: absolute;
@@ -56,6 +58,15 @@
       color: #557;
       text-align: center;
     }
+
+    @media (pointer: coarse), (max-width: 600px) {
+      body { height: auto; min-height: 100vh; padding: 16px 0 24px; overflow-y: auto; }
+      h1 { font-size: 1.5rem; margin-bottom: 8px; }
+      canvas {
+        width: min(88vw, 400px);
+        height: min(88vw, 400px);
+      }
+    }
   </style>
 </head>
 <body>
@@ -72,7 +83,7 @@
       <button id="start-btn">시작하기</button>
     </div>
   </div>
-  <div id="controls">방향키 / WASD · P: 일시정지</div>
+  <div id="controls">키보드: 방향키 / WASD · P: 일시정지 &nbsp;|&nbsp; 마우스: 클릭 &nbsp;|&nbsp; 모바일: 스와이프</div>
 
   <script>
     const canvas = document.getElementById('game');
@@ -175,6 +186,52 @@
       nextDir = newDir;
     });
     state = 'idle'; draw();
+
+    // 방향 적용 공통 함수
+    function applyDir(nd) {
+      if (!nd || (nd.x === -dir.x && nd.y === -dir.y)) return;
+      nextDir = nd;
+    }
+
+    // ── 모바일 스와이프 ──────────────────────────────
+    let tsX = 0, tsY = 0;
+    canvas.addEventListener('touchstart', e => {
+      tsX = e.touches[0].clientX;
+      tsY = e.touches[0].clientY;
+      e.preventDefault();
+      if (state === 'idle' || state === 'gameover') startGame();
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', e => {
+      if (state !== 'playing') return;
+      const dx = e.changedTouches[0].clientX - tsX;
+      const dy = e.changedTouches[0].clientY - tsY;
+      if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return; // threshold 20px 미만 무시
+      const nd = Math.abs(dx) > Math.abs(dy)
+        ? (dx > 0 ? {x:1,y:0} : {x:-1,y:0})
+        : (dy > 0 ? {x:0,y:1} : {x:0,y:-1});
+      applyDir(nd);
+    }, { passive: false });
+
+    // ── PC 마우스 클릭 ────────────────────────────────
+    canvas.addEventListener('click', e => {
+      if (state === 'idle' || state === 'gameover') { startGame(); return; }
+      if (state !== 'playing') return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const clickX = (e.clientX - rect.left) * scaleX;
+      const clickY = (e.clientY - rect.top) * scaleY;
+      const headX = snake[0].x * CELL + CELL / 2;
+      const headY = snake[0].y * CELL + CELL / 2;
+      const dx = clickX - headX;
+      const dy = clickY - headY;
+      if (dx === 0 && dy === 0) return;
+      const nd = Math.abs(dx) > Math.abs(dy)
+        ? (dx > 0 ? {x:1,y:0} : {x:-1,y:0})
+        : (dy > 0 ? {x:0,y:1} : {x:0,y:-1});
+      applyDir(nd);
+    });
   </script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>백수 구출 대작전</title>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
@@ -288,6 +288,61 @@ body{background:#080810;color:#c0d0e0;font-family:'DotGothic16','Courier New',mo
 .ending-btn{background:#1a0e06;border:2px solid #c08040;color:#e0b060;font-family:'DotGothic16',monospace;font-size:14px;padding:11px 30px;cursor:pointer;opacity:0;transition:opacity 0.5s;margin-top:20px;}
 .ending-btn.show{opacity:1;}
 .ending-btn:hover{background:#2a1800;}
+
+/* ── 모바일 반응형 스케일링 ── */
+#game-scaler{
+  width:1000px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  transform-origin:top center;
+  flex-shrink:0;
+}
+
+/* ── 터치 조작 오버레이 ── */
+#touch-ctrl{
+  display:none;
+  position:fixed;
+  bottom:0;left:0;right:0;
+  padding:10px 18px 18px;
+  justify-content:space-between;
+  align-items:flex-end;
+  z-index:500;
+  pointer-events:none;
+  background:linear-gradient(transparent, rgba(0,0,0,0.55));
+}
+#dpad-bk,#dbk-e{pointer-events:all;}
+#dpad-bk{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  user-select:none;-webkit-user-select:none;
+}
+.dpbk-mid{display:flex;gap:4px;align-items:center;}
+.dpbk-c{width:50px;height:50px;}
+.dpbk{
+  width:54px;height:54px;
+  background:rgba(192,128,64,0.2);
+  border:2px solid #c08040;
+  border-radius:10px;
+  color:#e0b060;
+  font-size:1.35rem;
+  font-family:'DotGothic16',monospace;
+  cursor:pointer;
+  touch-action:manipulation;
+  user-select:none;-webkit-user-select:none;
+  transition:background 0.1s;
+}
+.dpbk:active{background:rgba(192,128,64,0.5);}
+#dbk-e{
+  width:66px;height:66px;
+  border-radius:50%;
+  font-size:1.1rem;
+  letter-spacing:0.05em;
+}
+#touch-ctrl.active{display:flex;}
+@media(min-width:1024px){
+  /* 충분히 넓은 화면에서는 D-pad 숨김 */
+  #touch-ctrl.active{display:none;}
+}
 </style>
 </head>
 <body>
@@ -316,6 +371,7 @@ body{background:#080810;color:#c0d0e0;font-family:'DotGothic16','Courier New',mo
 
 <!-- GAME -->
 <div id="game" class="screen">
+  <div id="game-scaler">
   <div id="hud">
     <div class="hud-r">
       <span class="hud-day" id="hud-day">Day 1</span>
@@ -529,6 +585,7 @@ body{background:#080810;color:#c0d0e0;font-family:'DotGothic16','Courier New',mo
       </div>
     </div>
   </div>
+  </div><!-- /game-scaler -->
 
   <div id="log-panel"></div>
   <div id="bottom-bar">
@@ -1743,9 +1800,80 @@ async function startGame(){
   addLog('▶ Day 1. 2026년 봄. 방 안에서 하루가 시작된다.','ev');
   // auto-start music (requires user gesture — button click satisfies this)
   await startMusic();
+  // 모바일 터치 조작 활성화
+  scaleGame();
+  document.getElementById('touch-ctrl').classList.add('active');
 }
+
+// ── 모바일 반응형 스케일링 ───────────────────────────────
+function scaleGame() {
+  const scaler = document.getElementById('game-scaler');
+  if (!scaler) return;
+  const vw = window.innerWidth;
+  const scale = Math.min(1, vw / 1020);
+  scaler.style.transform = scale < 1 ? `scale(${scale})` : '';
+  scaler.style.transformOrigin = 'top center';
+  // transform은 레이아웃에 영향을 주지 않으므로 빈 공간을 음수 마진으로 보정
+  if (scale < 1) {
+    const h = scaler.offsetHeight;
+    scaler.style.marginBottom = `-${h * (1 - scale)}px`;
+  } else {
+    scaler.style.marginBottom = '';
+  }
+}
+window.addEventListener('resize', scaleGame);
+
+// ── 터치 D-pad 컨트롤 ─────────────────────────────────────
+(function setupTouchControls() {
+  const BK_DIR = {
+    'dbk-up':    'ArrowUp',
+    'dbk-down':  'ArrowDown',
+    'dbk-left':  'ArrowLeft',
+    'dbk-right': 'ArrowRight',
+  };
+  Object.entries(BK_DIR).forEach(([id, key]) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.addEventListener('touchstart', e => {
+      e.preventDefault();
+      keys[key] = true;
+    }, { passive: false });
+    btn.addEventListener('touchend', e => {
+      e.preventDefault();
+      keys[key] = false;
+    }, { passive: false });
+    btn.addEventListener('touchcancel', () => { keys[key] = false; });
+    // 마우스로도 테스트 가능하게
+    btn.addEventListener('mousedown', () => keys[key] = true);
+    btn.addEventListener('mouseup', () => keys[key] = false);
+    btn.addEventListener('mouseleave', () => keys[key] = false);
+  });
+
+  const eBtn = document.getElementById('dbk-e');
+  if (eBtn) {
+    eBtn.addEventListener('touchstart', e => {
+      e.preventDefault();
+      checkInteract();
+    }, { passive: false });
+    eBtn.addEventListener('click', () => checkInteract());
+  }
+})();
 
 runOpening();
 </script>
+
+<!-- 모바일 터치 조작 오버레이 (게임 화면에서만 표시) -->
+<div id="touch-ctrl">
+  <div id="dpad-bk">
+    <button class="dpbk" id="dbk-up" aria-label="위">▲</button>
+    <div class="dpbk-mid">
+      <button class="dpbk" id="dbk-left" aria-label="왼쪽">◀</button>
+      <div class="dpbk-c"></div>
+      <button class="dpbk" id="dbk-right" aria-label="오른쪽">▶</button>
+    </div>
+    <button class="dpbk" id="dbk-down" aria-label="아래">▼</button>
+  </div>
+  <button class="dpbk" id="dbk-e" aria-label="상호작용 (E)">E</button>
+</div>
 </body>
 </html>
