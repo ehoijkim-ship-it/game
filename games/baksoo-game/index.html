@@ -398,6 +398,7 @@ body{background:#080810;color:#c0d0e0;font-family:'DotGothic16','Courier New',mo
   </div>
   <div class="portrait-desc">그는 지금 방 안에만 있다.<br>배고프고, 지치고, 조금 무너져 있다.<br>하지만 아직 포기하지 않았다.<br>아기거미가 그를 도와줘야 한다.</div>
   <button class="start-btn" onclick="startGame()">[ 시작하기 ]</button>
+  <button class="start-btn" id="continue-btn" onclick="continueGame()" style="display:none; margin-top:10px;">[ 이어하기 ]</button>
 </div>
 
 <!-- GAME -->
@@ -623,6 +624,7 @@ body{background:#080810;color:#c0d0e0;font-family:'DotGothic16','Courier New',mo
     <span class="bot-info">방향키 / WASD 이동 &nbsp;·&nbsp; E 상호작용</span>
     <button class="bot-btn" id="btn-outside" onclick="goOutside()">[ 외출하기 ]</button>
     <button class="bot-btn" id="btn-interview" onclick="doInterview()">[ 면접 보러 가기 ]</button>
+    <button class="bot-btn" onclick="saveGame()" style="margin-left:auto;">[ 저장 ]</button>
     <button id="btn-music" class="bot-btn" onclick="toggleMusic()" style="font-size:10px;padding:5px 8px;">🔇 음악 끔</button>
     <button class="bot-btn" onclick="nextTrack()" style="font-size:10px;padding:5px 8px;" title="다음 트랙">⏭</button>
   </div>
@@ -1841,9 +1843,63 @@ async function checkMusicTransition(){
 }
 
 // ════════════════════════════════════════════
+// SAVE / LOAD
+// ════════════════════════════════════════════
+const SAVE_KEY = 'baksoo_v2_save';
+
+function saveGame() {
+  localStorage.setItem(SAVE_KEY, JSON.stringify(S));
+  showMilestone('💾 게임이 저장되었습니다.');
+  addLog('💾 게임을 저장했습니다.', 'act');
+}
+
+function loadGame() {
+  const data = localStorage.getItem(SAVE_KEY);
+  if (!data) return false;
+  try {
+    const saved = JSON.parse(data);
+    Object.assign(S, saved);
+    updateHUD();
+    updateQuestPanel();
+    // Restore visual states if needed
+    return true;
+  } catch (e) {
+    console.error('Save load failed', e);
+    return false;
+  }
+}
+
+function checkSave() {
+  try {
+    const data = localStorage.getItem(SAVE_KEY);
+    if (data) {
+      const parsed = JSON.parse(data);
+      const btn = document.getElementById('continue-btn');
+      if (btn) {
+        btn.style.display = 'block';
+        btn.innerHTML = `[ 이어하기 <span style="font-size:12px;color:#c08040">Day ${parsed.day}</span> ]`;
+      }
+    }
+  } catch(e){}
+}
+
+async function continueGame() {
+  if (loadGame()) {
+    document.getElementById('portrait').classList.remove('active');
+    document.getElementById('game').classList.add('active');
+    updateHUD();
+    gameLoop();
+    addLog(`▶ Day ${S.day}. 다시 시작합니다.`, 'ev');
+    await startMusic();
+    scaleGame();
+  }
+}
+
+// ════════════════════════════════════════════
 // OPENING SEQUENCE
 // ════════════════════════════════════════════
 async function runOpening(){
+  checkSave();
   const lines=[
     {id:'op1',text:'2026년 봄. 그는 회사를 그만뒀다.'},
     {id:'op2',text:'아니, 정확히는 회사가 그를 버렸다.'},
