@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://ehoijkim-ship-it.github.io/game/sitemap.xml
+Sitemap: https://game-vhy.pages.dev/sitemap.xml
