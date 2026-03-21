@@ -11,96 +11,101 @@
 body{font-family:'Press Start 2P',monospace;background:var(--bg);color:#e2e8f0;height:100dvh;display:flex;flex-direction:column;overflow:hidden;user-select:none;}
 
 /* TOP BAR */
-#top{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--panel);border-bottom:2px solid var(--border);flex-shrink:0;gap:8px;}
-#money-wrap{min-width:0;}
-#money{font-size:11px;color:var(--accent);white-space:nowrap;}
-#ps{font-size:8px;color:var(--green);margin-top:3px;}
+#top{display:flex;justify-content:space-between;align-items:center;padding:12px 15px;background:var(--panel);border-bottom:2px solid var(--border);flex-shrink:0;gap:12px;}
+#money-wrap{min-width:0;flex:1;}
+#money{font-size:16px;color:var(--accent);white-space:nowrap;margin-bottom:4px;}
+#ps{font-size:11px;color:var(--green);font-weight:bold;}
 #room-hud{text-align:right;flex-shrink:0;}
-#room-hud-name{font-size:8px;color:var(--purple);}
-#room-hud-slots{font-size:7px;color:var(--green);margin-top:3px;}
+#room-hud-name{font-size:11px;color:var(--purple);margin-bottom:4px;}
+#room-hud-slots{font-size:10px;color:var(--green);}
 
 /* ROOM */
 #room{flex:1;position:relative;overflow:hidden;transition:background 0.8s;}
 #room-wall{position:absolute;inset:0;transition:background 0.8s;}
-#room-floor{position:absolute;bottom:0;left:0;right:0;height:24px;transition:background 0.8s;}
-#room-window{position:absolute;top:8px;right:12px;width:48px;height:36px;border:3px solid #444;background:#050505;display:flex;align-items:center;justify-content:center;font-size:16px;border-radius:2px;transition:all 0.5s;}
-#char{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);font-size:32px;z-index:5;animation:breathe 4s ease-in-out infinite;pointer-events:none;}
-@keyframes breathe{0%,100%{transform:translate(-50%,-50%) scale(1);}50%{transform:translate(-50%,-50%) scale(1.04);}}
-#obj-grid{position:absolute;bottom:24px;left:0;right:0;display:flex;flex-wrap:wrap;align-content:flex-end;padding:6px;gap:4px;z-index:3;}
-.obj-slot{width:40px;height:40px;border:1px dashed rgba(255,255,255,0.15);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,0,0,0.2);position:relative;cursor:default;}
-.obj-slot.filled{border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.04);}
-.obj-lv{position:absolute;top:-4px;right:-4px;background:var(--accent);color:#000;font-size:5px;padding:1px 3px;border-radius:2px;}
-.income-pop{position:absolute;font-size:8px;color:var(--green);pointer-events:none;animation:floatup 1.5s ease-out forwards;z-index:20;white-space:nowrap;}
-@keyframes floatup{0%{opacity:1;transform:translateY(0);}100%{opacity:0;transform:translateY(-36px);}}
-
-/* STAGE 9 psychedelic */
-.stage9-bg{animation:psycho 4s linear infinite;}
-@keyframes psycho{0%{filter:hue-rotate(0deg);}100%{filter:hue-rotate(360deg);}}
+#room-floor{position:absolute;bottom:0;left:0;right:0;height:32px;transition:background 0.8s;}
+#room-window{position:absolute;top:15px;right:20px;width:64px;height:48px;border:4px solid #444;background:#050505;display:flex;align-items:center;justify-content:center;font-size:24px;border-radius:4px;transition:all 0.5s;}
+#char{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);font-size:48px;z-index:5;animation:breathe 4s ease-in-out infinite;pointer-events:none;}
+@keyframes breathe{0%,100%{transform:translate(-50%,-50%) scale(1);}50%{transform:translate(-50%,-50%) scale(1.08);}}
+#obj-grid{position:absolute;bottom:32px;left:0;right:0;display:flex;flex-wrap:wrap;align-content:flex-end;padding:12px;gap:8px;z-index:3;}
+.obj-slot{width:56px;height:56px;border:2px dashed rgba(255,255,255,0.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:32px;background:rgba(0,0,0,0.2);position:relative;cursor:default;}
+.obj-slot.filled{border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.06);border-style:solid;}
+.obj-lv{position:absolute;top:-6px;right:-6px;background:var(--accent);color:#000;font-size:10px;padding:2px 4px;border-radius:3px;font-weight:bold;}
+.income-pop{position:absolute;font-size:12px;color:var(--green);pointer-events:none;animation:floatup 1.5s ease-out forwards;z-index:20;white-space:nowrap;font-weight:bold;}
+@keyframes floatup{0%{opacity:1;transform:translateY(0);}100%{opacity:0;transform:translateY(-50px);}}
 
 /* PANEL */
-#panel{height:44vh;max-height:310px;background:var(--panel);border-top:2px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
-#tabs{display:flex;border-bottom:2px solid var(--border);flex-shrink:0;}
-.tb{flex:1;padding:7px 2px;font-family:'Press Start 2P',monospace;font-size:6px;background:#161616;color:#555;border:none;cursor:pointer;border-right:1px solid var(--border);transition:all 0.15s;}
+#panel{height:50vh;max-height:450px;background:var(--panel);border-top:3px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+#tabs{display:flex;border-bottom:3px solid var(--border);flex-shrink:0;}
+.tb{flex:1;padding:15px 5px;font-family:'Press Start 2P',monospace;font-size:10px;background:#161616;color:#666;border:none;cursor:pointer;border-right:1px solid var(--border);transition:all 0.15s;}
 .tb:last-child{border-right:none;}
-.tb.on{background:#1e1e1e;color:var(--accent);}
-#tab-body{flex:1;overflow-y:auto;padding:8px;scrollbar-width:thin;scrollbar-color:#333 transparent;}
-#tab-body::-webkit-scrollbar{width:3px;}
-#tab-body::-webkit-scrollbar-thumb{background:#333;}
+.tb.on{background:#222;color:var(--accent);border-bottom:3px solid var(--accent);}
+#tab-body{flex:1;overflow-y:auto;padding:12px;scrollbar-width:thin;scrollbar-color:#444 transparent;}
+#tab-body::-webkit-scrollbar{width:6px;}
+#tab-body::-webkit-scrollbar-thumb{background:#444;}
 
-/* SHOP ITEMS */
-.si{display:flex;align-items:center;gap:8px;padding:7px;background:#161616;border:1px solid #2a2a2a;border-radius:3px;margin-bottom:5px;transition:border-color 0.15s;}
-.si:hover{border-color:#444;}
-.si.locked{opacity:0.35;}
-.si.poor{opacity:0.55;}
-.si-ico{font-size:22px;flex-shrink:0;}
-.si-info{flex:1;min-width:0;}
-.si-name{font-size:7px;color:#e2e8f0;margin-bottom:2px;}
-.si-desc{font-size:5px;color:#555;line-height:1.5;margin-bottom:3px;}
-.si-meta{font-size:6px;}
-.si-meta .c{color:var(--accent);}
-.si-meta .i{color:var(--green);margin-left:6px;}
-.buy-btn{background:#1d4ed8;color:#fff;border:none;font-family:'Press Start 2P',monospace;font-size:6px;padding:5px 7px;cursor:pointer;border-radius:2px;flex-shrink:0;white-space:nowrap;}
-.buy-btn:disabled{background:#252525;color:#444;cursor:not-allowed;}
+/* GRID WRAPPER */
+.grid-container{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 
-/* UPGRADE ITEMS */
-.ui{display:flex;align-items:center;gap:8px;padding:7px;background:#161616;border:1px solid #2a2a2a;border-radius:3px;margin-bottom:5px;}
+/* SHOP ITEMS - CARD STYLE */
+.si{display:flex;flex-direction:column;padding:12px;background:#1a1a1a;border:2px solid #333;border-radius:8px;transition:all 0.15s;position:relative;}
+.si:hover{border-color:#555;background:#222;}
+.si.locked{opacity:0.3;filter:grayscale(1);}
+.si.poor{border-color:#442222;}
+.si-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.si-ico{font-size:28px;flex-shrink:0;}
+.si-name{font-size:11px;color:#e2e8f0;line-height:1.4;}
+.si-desc{font-size:9px;color:#777;line-height:1.6;margin-bottom:10px;height:45px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;}
+.si-footer{margin-top:auto;}
+.si-meta{margin-bottom:8px;}
+.si-meta .c{display:block;font-size:11px;color:var(--accent);margin-bottom:4px;}
+.si-meta .i{display:block;font-size:10px;color:var(--green);}
+.buy-btn{width:100%;background:#1d4ed8;color:#fff;border:none;font-family:'Press Start 2P',monospace;font-size:10px;padding:10px;cursor:pointer;border-radius:6px;transition:background 0.15s;}
+.buy-btn:hover:not(:disabled){background:#2563eb;}
+.buy-btn:disabled{background:#333;color:#666;cursor:not-allowed;}
+
+/* UPGRADE ITEMS - CARD STYLE */
+.ui{display:flex;flex-direction:column;padding:12px;background:#1a1a1a;border:2px solid #333;border-radius:8px;transition:all 0.15s;}
+.ui-header{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
 .ui-info{flex:1;}
-.ui-name{font-size:7px;color:#e2e8f0;margin-bottom:2px;}
-.ui-lv{font-size:5px;color:var(--purple);margin-bottom:2px;}
-.ui-next{font-size:5px;color:var(--green);}
-.up-btn{background:#6d28d9;color:#fff;border:none;font-family:'Press Start 2P',monospace;font-size:6px;padding:5px 7px;cursor:pointer;border-radius:2px;flex-shrink:0;white-space:nowrap;}
-.up-btn:disabled{background:#252525;color:#444;cursor:not-allowed;}
+.ui-name{font-size:11px;color:#e2e8f0;margin-bottom:6px;}
+.ui-lv{font-size:9px;color:var(--purple);margin-bottom:4px;}
+.ui-next{font-size:9px;color:var(--green);line-height:1.4;}
+.up-btn{width:100%;background:#6d28d9;color:#fff;border:none;font-family:'Press Start 2P',monospace;font-size:10px;padding:10px;cursor:pointer;border-radius:6px;margin-top:10px;transition:background 0.15s;}
+.up-btn:hover:not(:disabled){background:#7c3aed;}
+.up-btn:disabled{background:#333;color:#666;cursor:not-allowed;}
 
 /* ROOM TAB */
-.rc{background:#161616;border:1px solid #2a2a2a;border-radius:3px;padding:10px;text-align:center;margin-bottom:8px;}
-.rc h3{font-size:8px;color:var(--accent);margin-bottom:6px;}
-.rc .ri{font-size:6px;color:var(--purple);margin-bottom:3px;}
-.rc .rdesc{font-size:5px;color:#4a5568;line-height:1.7;margin:6px 0;}
-.rub{width:100%;background:#065f46;color:#fff;border:none;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px;cursor:pointer;border-radius:2px;}
-.rub:disabled{background:#252525;color:#444;cursor:not-allowed;}
+.rc{background:#1a1a1a;border:2px solid #333;border-radius:10px;padding:20px;text-align:center;margin-bottom:15px;}
+.rc h3{font-size:14px;color:var(--accent);margin-bottom:12px;}
+.rc .ri{font-size:11px;color:var(--purple);margin-bottom:8px;}
+.rc .rdesc{font-size:10px;color:#94a3b8;line-height:1.8;margin:15px 0;}
+.rub{width:100%;background:#059669;color:#fff;border:none;font-family:'Press Start 2P',monospace;font-size:12px;padding:15px;cursor:pointer;border-radius:8px;transition:background 0.15s;}
+.rub:hover:not(:disabled){background:#10b981;}
+.rub:disabled{background:#333;color:#666;cursor:not-allowed;}
 
 /* MODAL */
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:100;align-items:center;justify-content:center;}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:100;align-items:center;justify-content:center;}
 .modal-bg.show{display:flex;}
-.modal{background:var(--panel);border:3px solid var(--accent);border-radius:4px;padding:20px;max-width:280px;width:90%;text-align:center;animation:popin 0.25s ease-out;}
-@keyframes popin{from{transform:scale(0.8);opacity:0;}to{transform:scale(1);opacity:1;}}
-.modal .m-ico{font-size:44px;margin-bottom:10px;}
-.modal h3{font-size:9px;color:var(--accent);margin-bottom:8px;}
-.modal p{font-size:6px;color:#94a3b8;line-height:1.9;margin-bottom:8px;}
-.modal .m-fx{font-size:8px;color:var(--green);margin-bottom:14px;min-height:20px;}
-.modal-btn{background:var(--accent);color:#000;border:none;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 16px;cursor:pointer;border-radius:2px;}
+.modal{background:var(--panel);border:4px solid var(--accent);border-radius:12px;padding:30px;max-width:350px;width:90%;text-align:center;animation:popin 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);}
+@keyframes popin{from{transform:scale(0.5);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal .m-ico{font-size:64px;margin-bottom:20px;}
+.modal h3{font-size:16px;color:var(--accent);margin-bottom:15px;}
+.modal p{font-size:11px;color:#cbd5e1;line-height:2;margin-bottom:15px;}
+.modal .m-fx{font-size:13px;color:var(--green);margin-bottom:25px;min-height:30px;font-weight:bold;}
+.modal-btn{width:100%;background:var(--accent);color:#000;border:none;font-family:'Press Start 2P',monospace;font-size:12px;padding:15px;cursor:pointer;border-radius:8px;font-weight:bold;}
 .modal.purple{border-color:var(--purple);}
 .modal.purple .m-fx{color:var(--purple);}
-.modal.purple .modal-btn{background:var(--purple);}
+.modal.purple .modal-btn{background:var(--purple);color:#fff;}
 
 /* TOAST */
-#toast{position:fixed;bottom:calc(44vh + 16px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.95);border:1px solid var(--accent);color:var(--accent);font-size:7px;padding:6px 10px;border-radius:3px;z-index:200;opacity:0;transition:opacity 0.2s;white-space:nowrap;pointer-events:none;}
+#toast{position:fixed;bottom:calc(50vh + 20px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.95);border:2px solid var(--accent);color:var(--accent);font-size:11px;padding:12px 20px;border-radius:8px;z-index:200;opacity:0;transition:opacity 0.2s;white-space:nowrap;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
 #toast.show{opacity:1;}
 
 /* BUFF indicator */
-#buff-bar{display:none;position:absolute;top:4px;left:8px;font-size:6px;color:var(--accent);background:rgba(0,0,0,0.7);padding:3px 6px;border-radius:2px;z-index:10;}
+#buff-bar{display:none;position:absolute;top:10px;left:15px;font-size:10px;color:var(--accent);background:rgba(0,0,0,0.8);padding:6px 12px;border-radius:6px;z-index:10;border:1px solid var(--accent);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.7;}}
 #buff-bar.show{display:block;}
-</style>
+</style></style>
 </head>
 <body>
 
@@ -453,9 +458,13 @@ function renderShop(c){
   const avail=availSlots();
   if(avail<=0){
     const n=document.createElement('div');
-    n.style.cssText='text-align:center;padding:8px;font-size:6px;color:var(--red);margin-bottom:6px;';
+    n.style.cssText='text-align:center;padding:12px;font-size:10px;color:var(--red);margin-bottom:10px;font-weight:bold;';
     n.textContent='⚠️ 슬롯 가득 참! 방을 업그레이드하세요.';c.appendChild(n);
   }
+  
+  const grid = document.createElement('div');
+  grid.className = 'grid-container';
+  
   for(const obj of OBJS){
     const o=G.objs[obj.id]||{cnt:0,lv:0};
     const unlocked=G.stage>=obj.stage;
@@ -463,38 +472,64 @@ function renderShop(c){
     const el=document.createElement('div');
     el.className='si'+((!unlocked)?' locked':(!canBuy?' poor':''));
     const curIncome=obj.ps*obj.lvmult[o.lv];
-    el.innerHTML=`<div class="si-ico">${obj.e}</div>
-<div class="si-info">
-  <div class="si-name">${obj.lvnames[o.lv]}${o.cnt>0?` <span style="color:var(--purple)">[${o.cnt}]</span>`:''}</div>
-  <div class="si-desc">${!unlocked?`🔒 ${ROOMS[obj.stage].name} 해금`:obj.desc}</div>
-  <div class="si-meta"><span class="c">💰 ₩${fmt(obj.cost)}</span><span class="i">📈 +₩${fmtPs(curIncome)}/s</span></div>
-</div>
-<button class="buy-btn" onclick="buyObj('${obj.id}')" ${(!canBuy||!unlocked)?'disabled':''}>구매</button>`;
-    c.appendChild(el);
+    
+    el.innerHTML=`
+      <div class="si-header">
+        <div class="si-ico">${obj.e}</div>
+        <div class="si-name">${obj.lvnames[o.lv]}${o.cnt>0?`<br><span style="color:var(--purple);font-size:9px;">[보유: ${o.cnt}]</span>`:''}</div>
+      </div>
+      <div class="si-desc">${!unlocked?`🔒 ${ROOMS[obj.stage].name} 해금 필요`:obj.desc}</div>
+      <div class="si-footer">
+        <div class="si-meta">
+          <span class="c">₩${fmt(obj.cost)}</span>
+          <span class="i">+₩${fmtPs(curIncome)}/s</span>
+        </div>
+        <button class="buy-btn" onclick="buyObj('${obj.id}')" ${(!canBuy||!unlocked)?'disabled':''}>구매</button>
+      </div>`;
+    grid.appendChild(el);
   }
+  c.appendChild(grid);
   c.scrollTop=scrollTop;
 }
+
 function renderUpgrade(c){
   const scrollTop=c.scrollTop;
   c.innerHTML='';
   const owned=Object.entries(G.objs).filter(([,o])=>o.cnt>0);
-  if(!owned.length){c.innerHTML='<div style="text-align:center;padding:20px;font-size:7px;color:#444;">아직 구매한 오브젝트가 없습니다.</div>';return;}
+  if(!owned.length){
+    c.innerHTML='<div style="text-align:center;padding:40px;font-size:11px;color:#555;line-height:2;">아직 구매한 물건이 없습니다.<br>상점에서 물건을 먼저 구매하세요!</div>';
+    return;
+  }
+  
+  const grid = document.createElement('div');
+  grid.className = 'grid-container';
+  
   for(const[id,o] of owned){
     const def=OBJS.find(x=>x.id===id);if(!def)continue;
     const lv=o.lv,maxLv=def.lvnames.length-1,nextLv=lv+1;
     const hasNext=nextLv<=maxLv,upCost=hasNext?def.lvcosts[nextLv]:0;
     const canUp=hasNext&&G.money>=upCost;
     const bar='█'.repeat(lv+1)+'░'.repeat(maxLv-lv);
-    const el=document.createElement('div');el.className='ui';
-    el.innerHTML=`<div style="font-size:22px;flex-shrink:0">${def.e}</div>
-<div class="ui-info">
-  <div class="ui-name">${def.lvnames[lv]}</div>
-  <div class="ui-lv">LV${lv+1} [${bar}] ×${def.lvmult[lv]}</div>
-  ${hasNext?`<div class="ui-next">▶ ${def.lvnames[nextLv]} (×${def.lvmult[nextLv]})</div>`:`<div class="ui-next" style="color:var(--accent)">✨ 최대 업그레이드!</div>`}
-</div>
-<button class="up-btn" onclick="upObj('${id}')" ${(!canUp||!hasNext)?'disabled':''}>${hasNext?'₩'+fmt(upCost):'MAX'}</button>`;
-    c.appendChild(el);
+    
+    const el=document.createElement('div');
+    el.className='ui';
+    el.innerHTML=`
+      <div class="ui-header">
+        <div style="font-size:32px;">${def.e}</div>
+        <div class="ui-info">
+          <div class="ui-name">${def.lvnames[lv]}</div>
+          <div class="ui-lv">LV${lv+1} [${bar}]</div>
+        </div>
+      </div>
+      <div class="ui-next">
+        ${hasNext?`▶ 다음: ${def.lvnames[nextLv]}<br>(수익 ×${(def.lvmult[nextLv]/def.lvmult[lv]).toFixed(1)}배)`:`<span style="color:var(--accent)">✨ 최종 단계 도달!</span>`}
+      </div>
+      <button class="up-btn" onclick="upObj('${id}')" ${(!canUp||!hasNext)?'disabled':''}>
+        ${hasNext?'₩'+fmt(upCost):'MAX'}
+      </button>`;
+    grid.appendChild(el);
   }
+  c.appendChild(grid);
   c.scrollTop=scrollTop;
 }
 function renderRoomTab(c){
