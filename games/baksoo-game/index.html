@@ -344,7 +344,12 @@ body{background:#080810;color:#c0d0e0;font-family:'DotGothic16','Courier New',mo
 
 </style>
 </head>
+<style>
+.home-btn{position:fixed;top:8px;left:8px;z-index:9999;background:rgba(10,8,4,0.82);border:1px solid #4a3010;color:#c08040;font-family:'DotGothic16','Courier New',monospace;font-size:11px;padding:5px 9px;text-decoration:none;letter-spacing:0.05em;white-space:nowrap;transition:background 0.15s;}
+.home-btn:hover{background:rgba(42,24,0,0.95);border-color:#c08040;color:#e0b060;}
+</style>
 <body>
+<a href="../../index.html" class="home-btn">⌂ HOME</a>
 
 <!-- OPENING -->
 <div id="opening" class="screen active">
@@ -831,8 +836,13 @@ function updateProximity() {
   }
   // 행동창이 열려 있는데 해당 오브젝트에서 멀어지면 자동으로 닫기
   if (choiceOpenObj) {
-    const box=OBJ_LAYOUT[choiceOpenObj];
-    if (!box || distToBox(cx, cy, box) > 130) closeChoice();
+    if (choiceOpenObj === 'cat') {
+      // 아리는 이동하는 캐릭터이므로 실제 위치로 거리 체크
+      if (Math.hypot(cx-(catX+17), cy-(catY+15)) > 130) closeChoice();
+    } else {
+      const box=OBJ_LAYOUT[choiceOpenObj];
+      if (!box || distToBox(cx, cy, box) > 130) closeChoice();
+    }
   }
 }
 
