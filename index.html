@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Game Portal Platform</title>
+    <title>GamePortal - 무료 웹게임 플랫폼</title>
+    <meta name="description" content="설치 없이 바로 즐기는 무료 웹게임 플랫폼. 시뮬레이션, 아케이드, 클릭 게임 등 다양한 오리지널 게임을 브라우저에서 바로 플레이하세요.">
+    <meta name="keywords" content="무료게임, 웹게임, 브라우저게임, 뱀게임, 시뮬레이션게임, 클릭게임, 온라인게임">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
     <meta name="google-adsense-account" content="ca-pub-4257571340496419">
@@ -16,6 +18,7 @@
             <nav class="nav">
                 <ul>
                     <li><a href="index.html">Home</a></li>
+                    <li><a href="about.html">About</a></li>
                     <li><a href="contact.html">Contact</a></li>
                 </ul>
             </nav>
@@ -31,6 +34,14 @@
              data-full-width-responsive="true"></ins>
         <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
     </div>
+
+    <!-- 사이트 소개 히어로 섹션 -->
+    <section class="hero container">
+        <div class="hero-text">
+            <h2 class="hero-title">설치 없이, 지금 바로 플레이</h2>
+            <p class="hero-desc">GamePortal은 회원가입 없이 브라우저에서 바로 즐기는 <strong>무료 웹게임 플랫폼</strong>입니다. 직접 제작한 오리지널 게임을 PC와 모바일 모두에서 즐겨보세요.</p>
+        </div>
+    </section>
 
     <main class="main-content container">
         <aside class="sidebar">
@@ -68,7 +79,7 @@
                     </div>
                     <div class="game-info">
                         <h3 class="game-title">백수 구출 대작전</h3>
-                        <p class="game-desc">한 백수의 일상을 관리하며 성공적인 취업으로 이끄는 시뮬레이션 게임입니다.</p>
+                        <p class="game-desc">취준생의 하루를 관리하며 취업 성공을 목표로 하는 픽셀 시뮬레이션 게임. 체력, 의욕, 스펙을 조절하며 백수 탈출에 도전하세요!</p>
                         <span class="game-category">Simulation</span>
                     </div>
                 </a>
@@ -79,12 +90,12 @@
                         🐍
                     </div>
                     <div class="game-info">
-                        <h3 class="game-title">뱀 게임</h3>
-                        <p class="game-desc">클래식한 뱀 게임입니다. 먹이를 먹고 몸집을 키우며 자신의 한계에 도전해보세요!</p>
+                        <h3 class="game-title">클래식 뱀 게임</h3>
+                        <p class="game-desc">누구나 아는 뱀 게임의 정석! 방향키로 뱀을 조종해 먹이를 먹고 몸집을 키우세요. 자신의 몸과 벽을 피하며 최고 점수에 도전하세요.</p>
                         <span class="game-category">Arcade</span>
                     </div>
                 </a>
-                
+
                 <!-- Game Card 3: 수중생물 진화 강화 -->
                 <a href="games/aqua-evolution/index.html" class="game-card">
                     <div class="game-thumbnail" style="background: #050a1a; display: flex; align-items: center; justify-content: center; font-size: 5rem;">
@@ -92,17 +103,45 @@
                     </div>
                     <div class="game-info">
                         <h3 class="game-title">수중생물 진화 강화</h3>
-                        <p class="game-desc">물방울에서 용신까지! 성공/실패 확률이 있는 강화 클릭 게임. 조각을 모아 아이템과 교환하세요.</p>
+                        <p class="game-desc">물방울에서 용신까지! 성공과 실패 확률이 있는 강화 클릭 게임. 조각을 모아 아이템을 교환하고 최강의 수중생물로 진화시키세요.</p>
                         <span class="game-category">Clicker</span>
                     </div>
                 </a>
             </div>
+
+            <!-- 사이트 소개 텍스트 섹션 (콘텐츠 보강) -->
+            <section class="info-section">
+                <h2 class="section-title" style="margin-top: 3rem;">GamePortal이란?</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <h3>🖥️ 브라우저에서 바로 플레이</h3>
+                        <p>별도의 앱 설치나 회원가입이 필요 없습니다. 링크를 클릭하는 순간 바로 게임이 시작됩니다. PC, 태블릿, 스마트폰 등 다양한 기기에서 최적화된 화면으로 즐길 수 있습니다.</p>
+                    </div>
+                    <div class="info-item">
+                        <h3>🎯 오리지널 게임</h3>
+                        <p>GamePortal의 모든 게임은 직접 기획하고 제작한 오리지널 작품입니다. 단순하지만 중독성 있는 게임플레이로 짧은 시간에도 부담 없이 즐길 수 있도록 설계했습니다.</p>
+                    </div>
+                    <div class="info-item">
+                        <h3>📱 모바일 최적화</h3>
+                        <p>터치 조작을 지원하여 스마트폰에서도 편리하게 플레이할 수 있습니다. 출퇴근 중, 쉬는 시간 등 언제 어디서나 가볍게 즐겨보세요.</p>
+                    </div>
+                    <div class="info-item">
+                        <h3>🆓 완전 무료</h3>
+                        <p>GamePortal의 모든 게임은 무료로 제공됩니다. 과금 없이 게임의 모든 콘텐츠를 자유롭게 즐길 수 있습니다.</p>
+                    </div>
+                </div>
+            </section>
         </section>
     </main>
 
     <footer class="footer">
         <div class="container footer-container">
             <p>&copy; 2026 GamePortal. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="about.html">About</a>
+                <a href="privacy.html">개인정보처리방침</a>
+                <a href="contact.html">Contact</a>
+            </div>
         </div>
     </footer>
 
