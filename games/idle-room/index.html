@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>백수의 방 - 방치형 게임 | 무료게임 놀이터</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--accent:#fbbf24;--green:#86efac;--purple:#a78bfa;--red:#f87171;--bg:#0a0a0a;--panel:#111;--border:#222;}
+body{font-family:'Press Start 2P',monospace;background:var(--bg);color:#e2e8f0;height:100dvh;display:flex;flex-direction:column;overflow:hidden;user-select:none;}
+
+/* TOP BAR */
+#top{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--panel);border-bottom:2px solid var(--border);flex-shrink:0;gap:8px;}
+#money-wrap{min-width:0;}
+#money{font-size:11px;color:var(--accent);white-space:nowrap;}
+#ps{font-size:8px;color:var(--green);margin-top:3px;}
+#room-hud{text-align:right;flex-shrink:0;}
+#room-hud-name{font-size:8px;color:var(--purple);}
+#room-hud-slots{font-size:7px;color:var(--green);margin-top:3px;}
+
+/* ROOM */
+#room{flex:1;position:relative;overflow:hidden;transition:background 0.8s;}
+#room-wall{position:absolute;inset:0;transition:background 0.8s;}
+#room-floor{position:absolute;bottom:0;left:0;right:0;height:24px;transition:background 0.8s;}
+#room-window{position:absolute;top:8px;right:12px;width:48px;height:36px;border:3px solid #444;background:#050505;display:flex;align-items:center;justify-content:center;font-size:16px;border-radius:2px;transition:all 0.5s;}
+#char{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);font-size:32px;z-index:5;animation:breathe 4s ease-in-out infinite;pointer-events:none;}
+@keyframes breathe{0%,100%{transform:translate(-50%,-50%) scale(1);}50%{transform:translate(-50%,-50%) scale(1.04);}}
+#obj-grid{position:absolute;bottom:24px;left:0;right:0;display:flex;flex-wrap:wrap;align-content:flex-end;padding:6px;gap:4px;z-index:3;}
+.obj-slot{width:40px;height:40px;border:1px dashed rgba(255,255,255,0.15);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,0,0,0.2);position:relative;cursor:default;}
+.obj-slot.filled{border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.04);}
+.obj-lv{position:absolute;top:-4px;right:-4px;background:var(--accent);color:#000;font-size:5px;padding:1px 3px;border-radius:2px;}
+.income-pop{position:absolute;font-size:8px;color:var(--green);pointer-events:none;animation:floatup 1.5s ease-out forwards;z-index:20;white-space:nowrap;}
+@keyframes floatup{0%{opacity:1;transform:translateY(0);}100%{opacity:0;transform:translateY(-36px);}}
+
+/* STAGE 9 psychedelic */
+.stage9-bg{animation:psycho 4s linear infinite;}
+@keyframes psycho{0%{filter:hue-rotate(0deg);}100%{filter:hue-rotate(360deg);}}
+
+/* PANEL */
+#panel{height:44vh;max-height:310px;background:var(--panel);border-top:2px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+#tabs{display:flex;border-bottom:2px solid var(--border);flex-shrink:0;}
+.tb{flex:1;padding:7px 2px;font-family:'Press Start 2P',monospace;font-size:6px;background:#161616;color:#555;border:none;cursor:pointer;border-right:1px solid var(--border);transition:all 0.15s;}
+.tb:last-child{border-right:none;}
+.tb.on{background:#1e1e1e;color:var(--accent);}
+#tab-body{flex:1;overflow-y:auto;padding:8px;scrollbar-width:thin;scrollbar-color:#333 transparent;}
+#tab-body::-webkit-scrollbar{width:3px;}
+#tab-body::-webkit-scrollbar-thumb{background:#333;}
+
+/* SHOP ITEMS */
+.si{display:flex;align-items:center;gap:8px;padding:7px;background:#161616;border:1px solid #2a2a2a;border-radius:3px;margin-bottom:5px;transition:border-color 0.15s;}
+.si:hover{border-color:#444;}
+.si.locked{opacity:0.35;}
+.si.poor{opacity:0.55;}
+.si-ico{font-size:22px;flex-shrink:0;}
+.si-info{flex:1;min-width:0;}
+.si-name{font-size:7px;color:#e2e8f0;margin-bottom:2px;}
+.si-desc{font-size:5px;color:#555;line-height:1.5;margin-bottom:3px;}
+.si-meta{font-size:6px;}
+.si-meta .c{color:var(--accent);}
+.si-meta .i{color:var(--green);margin-left:6px;}
+.buy-btn{background:#1d4ed8;color:#fff;border:none;font-family:'Press Start 2P',monospace;font-size:6px;padding:5px 7px;cursor:pointer;border-radius:2px;flex-shrink:0;white-space:nowrap;}
+.buy-btn:disabled{background:#252525;color:#444;cursor:not-allowed;}
+
+/* UPGRADE ITEMS */
+.ui{display:flex;align-items:center;gap:8px;padding:7px;background:#161616;border:1px solid #2a2a2a;border-radius:3px;margin-bottom:5px;}
+.ui-info{flex:1;}
+.ui-name{font-size:7px;color:#e2e8f0;margin-bottom:2px;}
+.ui-lv{font-size:5px;color:var(--purple);margin-bottom:2px;}
+.ui-next{font-size:5px;color:var(--green);}
+.up-btn{background:#6d28d9;color:#fff;border:none;font-family:'Press Start 2P',monospace;font-size:6px;padding:5px 7px;cursor:pointer;border-radius:2px;flex-shrink:0;white-space:nowrap;}
+.up-btn:disabled{background:#252525;color:#444;cursor:not-allowed;}
+
+/* ROOM TAB */
+.rc{background:#161616;border:1px solid #2a2a2a;border-radius:3px;padding:10px;text-align:center;margin-bottom:8px;}
+.rc h3{font-size:8px;color:var(--accent);margin-bottom:6px;}
+.rc .ri{font-size:6px;color:var(--purple);margin-bottom:3px;}
+.rc .rdesc{font-size:5px;color:#4a5568;line-height:1.7;margin:6px 0;}
+.rub{width:100%;background:#065f46;color:#fff;border:none;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px;cursor:pointer;border-radius:2px;}
+.rub:disabled{background:#252525;color:#444;cursor:not-allowed;}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:100;align-items:center;justify-content:center;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--panel);border:3px solid var(--accent);border-radius:4px;padding:20px;max-width:280px;width:90%;text-align:center;animation:popin 0.25s ease-out;}
+@keyframes popin{from{transform:scale(0.8);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal .m-ico{font-size:44px;margin-bottom:10px;}
+.modal h3{font-size:9px;color:var(--accent);margin-bottom:8px;}
+.modal p{font-size:6px;color:#94a3b8;line-height:1.9;margin-bottom:8px;}
+.modal .m-fx{font-size:8px;color:var(--green);margin-bottom:14px;min-height:20px;}
+.modal-btn{background:var(--accent);color:#000;border:none;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 16px;cursor:pointer;border-radius:2px;}
+.modal.purple{border-color:var(--purple);}
+.modal.purple .m-fx{color:var(--purple);}
+.modal.purple .modal-btn{background:var(--purple);}
+
+/* TOAST */
+#toast{position:fixed;bottom:calc(44vh + 16px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.95);border:1px solid var(--accent);color:var(--accent);font-size:7px;padding:6px 10px;border-radius:3px;z-index:200;opacity:0;transition:opacity 0.2s;white-space:nowrap;pointer-events:none;}
+#toast.show{opacity:1;}
+
+/* BUFF indicator */
+#buff-bar{display:none;position:absolute;top:4px;left:8px;font-size:6px;color:var(--accent);background:rgba(0,0,0,0.7);padding:3px 6px;border-radius:2px;z-index:10;}
+#buff-bar.show{display:block;}
+</style>
+</head>
+<body>
+
+<div id="top">
+  <div id="money-wrap">
+    <div id="money">💰 ₩0</div>
+    <div id="ps">📈 +₩0/s</div>
+  </div>
+  <div id="room-hud">
+    <div id="room-hud-name">🏚️ 고시원</div>
+    <div id="room-hud-slots">슬롯 0/3</div>
+  </div>
+</div>
+
+<div id="room">
+  <div id="room-wall"></div>
+  <div id="room-floor"></div>
+  <div id="room-window">🧱</div>
+  <div id="buff-bar">✨ 버프 중!</div>
+  <div id="char">🛌</div>
+  <div id="obj-grid"></div>
+</div>
+
+<div id="panel">
+  <div id="tabs">
+    <button class="tb on" onclick="switchTab('shop')">🛒 상점</button>
+    <button class="tb" onclick="switchTab('upgrade')">⬆️ 업그레이드</button>
+    <button class="tb" onclick="switchTab('room')">🏠 방</button>
+  </div>
+  <div id="tab-body"></div>
+</div>
+
+<div class="modal-bg" id="ev-modal">
+  <div class="modal">
+    <div class="m-ico" id="ev-ico">🐦</div>
+    <h3 id="ev-title"></h3>
+    <p id="ev-desc"></p>
+    <div class="m-fx" id="ev-fx"></div>
+    <button class="modal-btn" onclick="closeEvent()">확인</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="lu-modal">
+  <div class="modal purple">
+    <div class="m-ico" id="lu-ico">🏠</div>
+    <h3>🎉 방 업그레이드!</h3>
+    <p id="lu-name" style="color:var(--accent);font-size:8px;"></p>
+    <div class="m-fx" id="lu-desc"></div>
+    <button class="modal-btn" onclick="document.getElementById('lu-modal').classList.remove('show')">입주하기</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════
+// DATA
+// ═══════════════════════════════
+const ROOMS=[
+  {name:'고시원',emoji:'🏚️',slots:3,cost:500,wall:'#110e08',floor:'#1e1508',win:'🧱',winLabel:'벽돌',char:'🛌',desc:'좁고 냄새나지만 내 방이다. 월세 45만원. 왠지 싸다.'},
+  {name:'반지하 원룸',emoji:'🏠',slots:4,cost:2000,wall:'#0b150b',floor:'#152015',win:'👟',winLabel:'지나가는 발',char:'🛌',desc:'창문으로 발목이 보인다. 비 오면 살짝 들어온다. 이걸 뷰라고 부른다.'},
+  {name:'지상 원룸',emoji:'🏡',slots:5,cost:8000,wall:'#1a1a2e',floor:'#252540',win:'☀️',winLabel:'햇빛',char:'😴',desc:'드디어 햇빛. 눈이 부셔서 커튼 쳤다. 지상이라는 사실만으로도 눈물이 난다.'},
+  {name:'투룸',emoji:'🏘️',slots:7,cost:30000,wall:'#0f1e28',floor:'#162a38',win:'🌧️',winLabel:'비 오는 거리',char:'😴',desc:'방이 두 개다. 나머지 방은 짐 창고다. 나는 항상 이 방에만 있다.'},
+  {name:'오피스텔',emoji:'🏢',slots:9,cost:120000,wall:'#14082a',floor:'#1f1040',win:'🌆',winLabel:'도시 야경',char:'😴',desc:'관리비가 따로 나온다. 수영장이 있는데 한 번도 안 갔다. 존재는 안다.'},
+  {name:'고급 아파트 한강뷰',emoji:'🌊',slots:11,cost:500000,wall:'#080f20',floor:'#0d1830',win:'🌉',winLabel:'한강',char:'🛌',desc:'한강이 보인다. 창문 안 열고 사진만 찍어서 SNS 올렸다. 좋아요 300개.'},
+  {name:'펜트하우스',emoji:'👑',slots:13,cost:2000000,wall:'#1a1200',floor:'#2a1e00',win:'🌃',winLabel:'서울 전경',char:'🛌',desc:'엘리베이터가 내 방에 직통이다. 귀찮아서 아직 한 번도 안 탔다.'},
+  {name:'개인 섬 별장',emoji:'🏝️',slots:15,cost:10000000,wall:'#041c0c',floor:'#063014',win:'🌴',winLabel:'야자수',char:'🏖️',desc:'섬 전체가 내 거다. 나는 방 안에만 있다. 섬은 그냥 배경이다.'},
+  {name:'우주 정거장',emoji:'🚀',slots:18,cost:50000000,wall:'#030308',floor:'#080815',win:'🌍',winLabel:'지구',char:'🧑‍🚀',desc:'무중력인데 어떻게든 누워있다. 지구가 보인다. 별로 궁금하지 않다.'},
+  {name:'차원 너머 방',emoji:'🌀',slots:Infinity,cost:Infinity,wall:'#12002a',floor:'#1e0040',win:'🌀',winLabel:'차원 균열',char:'🌌',desc:'숫자들이 말을 걸어온다. "안녕." 나는 대답하지 않았다. 그냥 누워있었다.'},
+];
+
+const OBJS=[
+  // 초반 (stage 0)
+  {id:'pc',e:'🖥️',name:'구형 컴퓨터',stage:0,cost:50,ps:0.8,
+   desc:'유튜브 자동재생 광고수익. 채널명: "없습니다TV". 구독자 없어도 광고는 나옴.',
+   lvnames:['구형 컴퓨터','게이밍 PC','서버랙','양자컴퓨터'],
+   lvcosts:[0,300,2000,15000],lvmult:[1,3,8,25]},
+  {id:'phone',e:'📱',name:'공기계 스마트폰',stage:0,cost:30,ps:0.5,
+   desc:'앱테크 수익. 앱 이름 "재워도돈나오는앱". 리뷰 4.9점. 진짜인지 모름.',
+   lvnames:['공기계 스마트폰','최신폰','폰 10대','폰 농장'],
+   lvcosts:[0,200,1500,10000],lvmult:[1,2.5,7,20]},
+  {id:'ramen',e:'🍜',name:'라면 냄비',stage:0,cost:20,ps:0.3,
+   desc:'배달 리뷰 알바. 안 먹어도 리뷰 씀. "맛있었어요 ^^" 300번째 리뷰.',
+   lvnames:['라면 냄비','곱빼기 세트','라면 공장','라면 우주선'],
+   lvcosts:[0,150,1000,8000],lvmult:[1,2,6,15]},
+  {id:'box',e:'📦',name:'택배박스 탑',stage:0,cost:40,ps:0.6,
+   desc:'중고거래 수익. 뭘 파는지 나도 모른다. 구매자도 모른다. 그냥 팔린다.',
+   lvnames:['택배박스 탑','창고','물류센터','4차원 창고'],
+   lvcosts:[0,250,1800,12000],lvmult:[1,2.8,7,18]},
+  {id:'gameboy',e:'🎮',name:'구형 게임기',stage:0,cost:80,ps:1.2,
+   desc:'자는 동안 봇 돌려서 아이템 파밍. 봇이 나보다 레벨 높다. 기분 나쁘다.',
+   lvnames:['구형 게임기','고성능 게이밍','봇 클러스터','AI 자동파밍'],
+   lvcosts:[0,500,3500,25000],lvmult:[1,3,10,30]},
+  // 중반 (stage 2~3)
+  {id:'crystal',e:'🔮',name:'수정구슬',stage:2,cost:500,ps:3,
+   desc:'로또 번호 가끔 맞음. 확률 0.1%. 그래도 수지타산이 맞는다는 게 신기하다.',
+   lvnames:['수정구슬','강화 수정구슬','예언의 수정','전지전능 구슬'],
+   lvcosts:[0,2000,15000,100000],lvmult:[1,4,12,40]},
+  {id:'bear',e:'🧸',name:'곰인형',stage:2,cost:300,ps:2,
+   desc:'밤마다 몰래 주식 투자. 수익률이 나보다 높다. 기분이 복잡하다.',
+   lvnames:['곰인형','투자귀재 곰','헤지펀드 곰','월가의 곰'],
+   lvcosts:[0,1500,10000,70000],lvmult:[1,3.5,10,28]},
+  {id:'bamboo',e:'🎋',name:'대나무',stage:2,cost:400,ps:2.5,
+   desc:'자는 동안 자라서 건축자재로 팜. 성장 속도가 의심스럽다. 이상하다.',
+   lvnames:['대나무','거대 대나무','대나무 숲','대나무 제국'],
+   lvcosts:[0,1800,12000,80000],lvmult:[1,4,11,35]},
+  {id:'clock',e:'🕰️',name:'멈춘 시계',stage:3,cost:600,ps:3.5,
+   desc:'운세 서비스 운영. 하루 2번은 정확함. 멈춘 시계처럼.',
+   lvnames:['멈춘 시계','신비한 시계','시간 조각가','운명의 시계탑'],
+   lvcosts:[0,2500,18000,120000],lvmult:[1,4,13,45]},
+  {id:'matryoshka',e:'🪆',name:'러시아 인형',stage:3,cost:800,ps:4,
+   desc:'열수록 코인 나옴. 무한히 작아짐. 열 수가 없어져도 돈은 계속 나온다.',
+   lvnames:['러시아 인형','겹겹이 인형','무한 인형','코인 차원'],
+   lvcosts:[0,3000,22000,150000],lvmult:[1,4,14,50]},
+  // 후반 (stage 4~5)
+  {id:'therm',e:'🌡️',name:'체온계',stage:4,cost:3000,ps:10,
+   desc:'체온으로 발전. 누울수록 수익. 그래서 더 안 일어남. 병이 아니라 직업.',
+   lvnames:['체온계','열 발전기','인체 원자로','생체 다이슨 스피어'],
+   lvcosts:[0,15000,100000,700000],lvmult:[1,5,18,60]},
+  {id:'horn',e:'📯',name:'이상한 나팔',stage:4,cost:4000,ps:12,
+   desc:'불면 돈이 날아옴. 이유는 아무도 모름. 세무서도 모름. 그냥 신고했다.',
+   lvnames:['이상한 나팔','황금 나팔','천상의 나팔','우주 나팔'],
+   lvcosts:[0,20000,130000,900000],lvmult:[1,5,20,70]},
+  {id:'map',e:'🗺️',name:'보물지도',stage:5,cost:6000,ps:15,
+   desc:'방 안 어딘가 보물 랜덤 발견. 안 일어나도 찾힌다. 방이 작아서 그런 것 같다.',
+   lvnames:['보물지도','상세 보물지도','보물 레이더','보물 AI'],
+   lvcosts:[0,30000,200000,1500000],lvmult:[1,6,22,80]},
+  {id:'windmill',e:'🎐',name:'바람개비',stage:5,cost:5000,ps:13,
+   desc:'에어컨 바람으로 발전. 전기세보다 수익이 많다. 에어컨 회사가 조용히 찾아왔다.',
+   lvnames:['바람개비','소형 풍력','대형 풍력','태풍 포집기'],
+   lvcosts:[0,25000,180000,1200000],lvmult:[1,5,18,65]},
+  {id:'telescope',e:'🔭',name:'망원경',stage:5,cost:8000,ps:18,
+   desc:'별 관측 후 논문 팔기. 논문 제목: "누워서 보는 우주". 인용수 2만회.',
+   lvnames:['망원경','대형 망원경','우주 망원경','초공간 관측기'],
+   lvcosts:[0,40000,280000,2000000],lvmult:[1,6,25,90]},
+  // 최후반 (stage 6~8)
+  {id:'bhole',e:'🌀',name:'블랙홀 미니어처',stage:6,cost:50000,ps:80,
+   desc:'시간 압축으로 수익 가속. 물리법칙이 좀 이상해졌다. 어제가 내일인 것 같다.',
+   lvnames:['블랙홀 미니어처','블랙홀 중형','블랙홀 대형','특이점'],
+   lvcosts:[0,250000,2000000,15000000],lvmult:[1,8,30,120]},
+  {id:'alien',e:'👾',name:'외계인 피규어',stage:7,cost:100000,ps:150,
+   desc:'실제 외계인이 임대료 냄. 은하 공증 계약서 작성. 공증 수수료만 10억이었다.',
+   lvnames:['외계인 피규어','외계인 룸메','외계 부동산','은하 부동산 재벌'],
+   lvcosts:[0,500000,4000000,30000000],lvmult:[1,10,40,160]},
+  {id:'lightning',e:'⚡',name:'번개 포집기',stage:7,cost:80000,ps:120,
+   desc:'낙뢰 맞을 때마다 대박. 이제 피뢰침을 방에 여러 개 달았다. 이웃이 싫어한다.',
+   lvnames:['번개 포집기','뇌전 수집기','폭풍 발전소','기후 조작기'],
+   lvcosts:[0,400000,3000000,22000000],lvmult:[1,9,35,140]},
+  {id:'dna',e:'🧬',name:'DNA 모형',stage:8,cost:300000,ps:400,
+   desc:'특허료 자동수금. 뭘 특허 낸 건지 나도 모름. 변리사도 모름. 그냥 입금됨.',
+   lvnames:['DNA 모형','유전자 특허','생명 코드','창조주 특허'],
+   lvcosts:[0,1500000,12000000,100000000],lvmult:[1,12,50,200]},
+  {id:'ufo',e:'🛸',name:'UFO 모형',stage:8,cost:500000,ps:600,
+   desc:'납치됐다 돌아올 때마다 정부 입막음비. 일부러 납치당하기 시작했다. 효율적이다.',
+   lvnames:['UFO 모형','정규 납치','납치 정기권','우주 연방 지원금'],
+   lvcosts:[0,2500000,20000000,150000000],lvmult:[1,15,60,250]},
+];
+
+const EVENTS=[
+  {e:'🐦',t:'비둘기 내습',d:'비둘기가 지갑을 물고 들어왔다. 돈이 들어있었다.\n이 지갑이 누구 것인지는 묻지 않기로 했다.',
+   fx:(ps)=>({type:'money',v:ps*30,txt:`+₩${fmt(ps*30)} 획득!`})},
+  {e:'📺',t:'홈쇼핑 사고',d:'자다가 리모컨을 눌러서 뭔가를 주문했다.\n뭔지 모르지만 주문 완료 문자가 왔다.',
+   fx:(ps,m)=>({type:'money',v:-Math.min(m*0.05,ps*20),txt:`-₩${fmt(Math.min(m*0.05,ps*20))} 소비...`})},
+  {e:'🍜',t:'라면 스프 두 개',d:'실수로 스프를 두 개 넣었다. 짜서 못 먹었지만\n이상하게 의욕이 생겼다. 30초간 수익 2배.',
+   fx:()=>({type:'buff',mult:2,dur:30,txt:'30초간 수익 2배!'})},
+  {e:'🏠',t:'부모님 방문',d:'"아직도 여기 있어?" 가출 자금을 주겠다고 했다.\n나가는 것보다 돈이 낫다고 판단했다.',
+   fx:(ps)=>({type:'money',v:ps*50,txt:`+₩${fmt(ps*50)} 지원금!`})},
+  {e:'💌',t:'익명 후원',d:'"당신이 대단히 도움이 됐습니다."\n무슨 도움인지 모르지만 돈이 동봉되어 있었다.',
+   fx:(ps)=>({type:'money',v:ps*25,txt:`+₩${fmt(ps*25)} 익명 후원!`})},
+  {e:'📈',t:'잊어버린 주식 급등',d:'10년 전에 잊어버린 주식이 1000배 올랐다.\n팔기 귀찮아서 그냥 뒀다. 2000배 됐다.',
+   fx:(ps)=>({type:'money',v:ps*100,txt:`+₩${fmt(ps*100)} 대박!`})},
+  {e:'🍕',t:'배달 오배송',d:'치킨 5마리가 왔다. 주문한 건 1마리였다.\n환불은 안 했다. 별점 5점 줬다.',
+   fx:()=>({type:'buff',mult:1.5,dur:60,txt:'60초간 수익 1.5배!'})},
+  {e:'🎁',t:'잘못 배송된 택배',d:'옆집 택배가 왔다. 이름이 비슷해서 열어봤다.\n현금이 있었다. 옆집에 돌려주러 갔다가 그냥 왔다.',
+   fx:(ps)=>({type:'money',v:ps*40,txt:`+₩${fmt(ps*40)} 발견!`})},
+  {e:'🐱',t:'고양이 출현',d:'어디서 들어왔는지 모를 고양이가 있었다.\n쓰다듬었더니 지갑을 떨어뜨리고 나갔다.',
+   fx:(ps)=>({type:'money',v:ps*15,txt:`+₩${fmt(ps*15)} 냥냥 보너스!`})},
+  {e:'⚡',t:'갑작스러운 낙뢰',d:'방에 번개가 쳤다. 이상하게도 모든 기기가\n과충전됐다. 수익이 잠깐 폭발했다.',
+   fx:()=>({type:'buff',mult:3,dur:15,txt:'15초간 수익 3배!'})},
+];
+
+// ═══════════════════════════════
+// STATE
+// ═══════════════════════════════
+let G={money:0,totalEarned:0,stage:0,objs:{},lastSave:Date.now(),buff:null};
+let ps=0, activeTab='shop', pendingEffect=null;
+
+// ═══════════════════════════════
+// FORMAT
+// ═══════════════════════════════
+function fmt(n){
+  n=Math.floor(n);
+  if(n<0)return'-'+fmt(-n);
+  // stage 9 easter egg
+  if(G.stage>=9&&n>1e15){
+    const msgs=['∞','???','모름','많음','엄청','우주적','차원초과','그냥 많음'];
+    return msgs[Math.floor(Date.now()/2000)%msgs.length];
+  }
+  if(n<1e3)return n.toLocaleString();
+  if(n<1e6)return(n/1e3).toFixed(1).replace(/\.0$/,'')+'K';
+  if(n<1e9)return(n/1e6).toFixed(2).replace(/\.?0+$/,'')+'M';
+  if(n<1e12)return(n/1e9).toFixed(2).replace(/\.?0+$/,'')+'B';
+  if(n<1e15)return(n/1e12).toFixed(2).replace(/\.?0+$/,'')+'T';
+  return(n/1e15).toFixed(2).replace(/\.?0+$/,'')+'Q';
+}
+function fmtPs(n){return n<1000?n.toFixed(1):fmt(n);}
+
+// ═══════════════════════════════
+// CORE CALC
+// ═══════════════════════════════
+function calcPs(){
+  let t=0;
+  for(const[id,o] of Object.entries(G.objs)){
+    const def=OBJS.find(x=>x.id===id);
+    if(!def)continue;
+    t+=def.ps*def.lvmult[o.lv]*o.cnt;
+  }
+  if(G.buff&&Date.now()<G.buff.end)t*=G.buff.mult;
+  return t;
+}
+function usedSlots(){return Object.values(G.objs).reduce((s,o)=>s+o.cnt,0);}
+function availSlots(){const r=ROOMS[G.stage];return r.slots===Infinity?999999:r.slots-usedSlots();}
+
+// ═══════════════════════════════
+// SAVE / LOAD
+// ═══════════════════════════════
+function save(){G.lastSave=Date.now();localStorage.setItem('idle_room_v2',JSON.stringify(G));}
+function load(){
+  try{
+    const raw=localStorage.getItem('idle_room_v2');
+    if(!raw)return;
+    const s=JSON.parse(raw);
+    G={...G,...s};
+    const elapsed=(Date.now()-G.lastSave)/1000;
+    if(elapsed>5&&elapsed<259200){
+      const offPs=calcPs();
+      const earned=offPs*elapsed*0.5;
+      if(earned>1){
+        G.money+=earned;G.totalEarned+=earned;
+        setTimeout(()=>showEvent({e:'😴',t:'오프라인 수익!',
+          d:`방치해 두셨군요.\n그 동안에도 돈은 착착 쌓였습니다.`,
+          fx:`+₩${fmt(earned)} 오프라인 수익!\n(${Math.floor(elapsed/3600)}시간 ${Math.floor((elapsed%3600)/60)}분)`}),600);
+      }
+    }
+    G.lastSave=Date.now();
+  }catch(e){console.warn('load err',e);}
+}
+
+// ═══════════════════════════════
+// GAME LOOP
+// ═══════════════════════════════
+let lastTick=Date.now(),saveTmr=0,evTmr=0,evNext=30+Math.random()*30,popTmr=0,tabTmr=0;
+function tick(){
+  const now=Date.now(),dt=(now-lastTick)/1000;lastTick=now;
+  if(G.buff&&now>G.buff.end)G.buff=null;
+  ps=calcPs();
+  G.money+=ps*dt;G.totalEarned+=ps*dt;
+  updateHUD();
+  saveTmr+=dt;if(saveTmr>=5){save();saveTmr=0;}
+  evTmr+=dt;if(evTmr>=evNext&&!document.getElementById('ev-modal').classList.contains('show')){triggerEvent();evTmr=0;evNext=45+Math.random()*45;}
+  popTmr+=dt;if(popTmr>=2&&ps>0){spawnIncomePop();popTmr=0;}
+  tabTmr+=dt;if(tabTmr>=1.5){tabTmr=0;renderTab();}
+  // buff bar
+  const bb=document.getElementById('buff-bar');
+  if(G.buff&&Date.now()<G.buff.end){bb.classList.add('show');bb.textContent=`✨ ×${G.buff.mult} 버프 중!`;}
+  else bb.classList.remove('show');
+}
+function updateHUD(){
+  document.getElementById('money').textContent='💰 ₩'+fmt(G.money);
+  document.getElementById('ps').textContent='📈 +₩'+fmtPs(ps)+'/s';
+  const r=ROOMS[G.stage],used=usedSlots(),total=r.slots;
+  document.getElementById('room-hud-name').textContent=r.emoji+' '+r.name;
+  document.getElementById('room-hud-slots').textContent='슬롯 '+used+'/'+(total===Infinity?'∞':total);
+  renderObjGrid();
+}
+function renderObjGrid(){
+  const grid=document.getElementById('obj-grid');
+  grid.innerHTML='';
+  const items=[];
+  for(const[id,o] of Object.entries(G.objs)){
+    const def=OBJS.find(x=>x.id===id);
+    if(!def)continue;
+    for(let i=0;i<o.cnt;i++)items.push({e:def.e,lv:o.lv});
+  }
+  const r=ROOMS[G.stage],maxShow=r.slots===Infinity?Math.min(items.length+2,30):r.slots;
+  for(let i=0;i<maxShow;i++){
+    const sl=document.createElement('div');
+    if(i<items.length){
+      sl.className='obj-slot filled';sl.textContent=items[i].e;
+      if(items[i].lv>0){const b=document.createElement('div');b.className='obj-lv';b.textContent='+'+items[i].lv;sl.appendChild(b);}
+    }else{sl.className='obj-slot';}
+    grid.appendChild(sl);
+  }
+}
+function spawnIncomePop(){
+  const room=document.getElementById('room');
+  const p=document.createElement('div');
+  p.className='income-pop';p.textContent='+₩'+fmt(ps*2);
+  p.style.left=(15+Math.random()*65)+'%';p.style.top=(25+Math.random()*45)+'%';
+  room.appendChild(p);setTimeout(()=>p.remove(),1500);
+}
+
+// ═══════════════════════════════
+// ROOM VISUAL
+// ═══════════════════════════════
+function updateRoomVisual(){
+  const r=ROOMS[G.stage];
+  document.getElementById('room-wall').style.background=r.wall;
+  document.getElementById('room-floor').style.background=r.floor;
+  document.getElementById('room-window').textContent=r.win;
+  document.getElementById('room-window').title=r.winLabel;
+  document.getElementById('char').textContent=r.char;
+  const wall=document.getElementById('room-wall');
+  if(G.stage>=8){wall.classList.add('stage9-bg');}else{wall.classList.remove('stage9-bg');}
+  // Starfield
+  let sc=document.getElementById('star-cv');
+  if(G.stage>=8){
+    if(!sc){sc=document.createElement('canvas');sc.id='star-cv';sc.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:1;';wall.appendChild(sc);}
+    drawStars(sc);
+  }else if(sc)sc.remove();
+}
+function drawStars(cv){
+  const w=cv.parentElement.offsetWidth||300,h=cv.parentElement.offsetHeight||200;
+  cv.width=w;cv.height=h;
+  const ctx=cv.getContext('2d');ctx.clearRect(0,0,w,h);
+  for(let i=0;i<100;i++){
+    const x=Math.random()*w,y=Math.random()*h,r=Math.random()*1.5;
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${0.3+Math.random()*0.7})`;ctx.fill();
+  }
+}
+
+// ═══════════════════════════════
+// TABS
+// ═══════════════════════════════
+function switchTab(t){
+  activeTab=t;
+  document.querySelectorAll('.tb').forEach((b,i)=>{b.classList.toggle('on',['shop','upgrade','room'][i]===t);});
+  renderTab();
+}
+function renderTab(){
+  const c=document.getElementById('tab-body');
+  if(activeTab==='shop')renderShop(c);
+  else if(activeTab==='upgrade')renderUpgrade(c);
+  else renderRoomTab(c);
+}
+function renderShop(c){
+  const scrollTop=c.scrollTop;
+  c.innerHTML='';
+  const avail=availSlots();
+  if(avail<=0){
+    const n=document.createElement('div');
+    n.style.cssText='text-align:center;padding:8px;font-size:6px;color:var(--red);margin-bottom:6px;';
+    n.textContent='⚠️ 슬롯 가득 참! 방을 업그레이드하세요.';c.appendChild(n);
+  }
+  for(const obj of OBJS){
+    const o=G.objs[obj.id]||{cnt:0,lv:0};
+    const unlocked=G.stage>=obj.stage;
+    const canBuy=G.money>=obj.cost&&avail>0&&unlocked;
+    const el=document.createElement('div');
+    el.className='si'+((!unlocked)?' locked':(!canBuy?' poor':''));
+    const curIncome=obj.ps*obj.lvmult[o.lv];
+    el.innerHTML=`<div class="si-ico">${obj.e}</div>
+<div class="si-info">
+  <div class="si-name">${obj.lvnames[o.lv]}${o.cnt>0?` <span style="color:var(--purple)">[${o.cnt}]</span>`:''}</div>
+  <div class="si-desc">${!unlocked?`🔒 ${ROOMS[obj.stage].name} 해금`:obj.desc}</div>
+  <div class="si-meta"><span class="c">💰 ₩${fmt(obj.cost)}</span><span class="i">📈 +₩${fmtPs(curIncome)}/s</span></div>
+</div>
+<button class="buy-btn" onclick="buyObj('${obj.id}')" ${(!canBuy||!unlocked)?'disabled':''}>구매</button>`;
+    c.appendChild(el);
+  }
+  c.scrollTop=scrollTop;
+}
+function renderUpgrade(c){
+  const scrollTop=c.scrollTop;
+  c.innerHTML='';
+  const owned=Object.entries(G.objs).filter(([,o])=>o.cnt>0);
+  if(!owned.length){c.innerHTML='<div style="text-align:center;padding:20px;font-size:7px;color:#444;">아직 구매한 오브젝트가 없습니다.</div>';return;}
+  for(const[id,o] of owned){
+    const def=OBJS.find(x=>x.id===id);if(!def)continue;
+    const lv=o.lv,maxLv=def.lvnames.length-1,nextLv=lv+1;
+    const hasNext=nextLv<=maxLv,upCost=hasNext?def.lvcosts[nextLv]:0;
+    const canUp=hasNext&&G.money>=upCost;
+    const bar='█'.repeat(lv+1)+'░'.repeat(maxLv-lv);
+    const el=document.createElement('div');el.className='ui';
+    el.innerHTML=`<div style="font-size:22px;flex-shrink:0">${def.e}</div>
+<div class="ui-info">
+  <div class="ui-name">${def.lvnames[lv]}</div>
+  <div class="ui-lv">LV${lv+1} [${bar}] ×${def.lvmult[lv]}</div>
+  ${hasNext?`<div class="ui-next">▶ ${def.lvnames[nextLv]} (×${def.lvmult[nextLv]})</div>`:`<div class="ui-next" style="color:var(--accent)">✨ 최대 업그레이드!</div>`}
+</div>
+<button class="up-btn" onclick="upObj('${id}')" ${(!canUp||!hasNext)?'disabled':''}>${hasNext?'₩'+fmt(upCost):'MAX'}</button>`;
+    c.appendChild(el);
+  }
+  c.scrollTop=scrollTop;
+}
+function renderRoomTab(c){
+  c.innerHTML='';
+  const r=ROOMS[G.stage],nr=ROOMS[G.stage+1];
+  const cur=document.createElement('div');cur.className='rc';
+  cur.innerHTML=`<div style="font-size:26px;margin-bottom:6px">${r.emoji}</div>
+<h3>${G.stage+1}단계: ${r.name}</h3>
+<div class="ri">슬롯: ${r.slots===Infinity?'∞ (무한)':r.slots}개</div>
+<div class="rdesc">${r.desc}</div>`;
+  c.appendChild(cur);
+  if(!nr){
+    const m=document.createElement('div');m.className='rc';
+    m.innerHTML=`<div style="font-size:8px;color:var(--accent);line-height:2">🌀 차원 너머 방 달성<br>숫자들이 말을 걸어옵니다.</div>`;
+    c.appendChild(m);
+    return;
+  }
+  const canUp=G.money>=nr.cost;
+  const upCard=document.createElement('div');upCard.className='rc';
+  upCard.innerHTML=`<div style="font-size:22px;margin-bottom:6px">${nr.emoji}</div>
+<h3>다음 단계</h3>
+<div class="ri">${G.stage+2}단계: ${nr.name} (슬롯 ${nr.slots===Infinity?'∞':nr.slots}개)</div>
+<div style="font-size:7px;color:var(--green);margin:6px 0">💰 ₩${fmt(nr.cost)}</div>
+<div style="font-size:5px;color:#4a5568;margin-bottom:10px">보유: ₩${fmt(G.money)} / 필요: ₩${fmt(nr.cost)}</div>
+<button class="rub" onclick="upgradeRoom()" ${!canUp?'disabled':''}>${canUp?'🏠 업그레이드!':'₩'+fmt(nr.cost-G.money)+' 더 필요'}</button>`;
+  c.appendChild(upCard);
+  // Reset button at bottom
+  const reset=document.createElement('div');reset.style.cssText='text-align:center;margin-top:16px;';
+  reset.innerHTML=`<button onclick="resetGame()" style="background:none;border:1px solid #333;color:#444;font-family:inherit;font-size:5px;padding:5px 10px;cursor:pointer;border-radius:2px">초기화</button>`;
+  c.appendChild(reset);
+}
+
+// ═══════════════════════════════
+// ACTIONS
+// ═══════════════════════════════
+function buyObj(id){
+  const def=OBJS.find(x=>x.id===id);if(!def)return;
+  if(G.money<def.cost){showToast('돈이 부족합니다!');return;}
+  if(availSlots()<=0){showToast('슬롯이 가득 찼습니다!');return;}
+  if(G.stage<def.stage){showToast('아직 해금 안 됨!');return;}
+  G.money-=def.cost;
+  if(!G.objs[id])G.objs[id]={cnt:0,lv:0};
+  G.objs[id].cnt++;
+  showToast(def.e+' '+def.lvnames[G.objs[id].lv]+' 배치!');
+}
+function upObj(id){
+  const def=OBJS.find(x=>x.id===id);if(!def)return;
+  const o=G.objs[id];if(!o||o.cnt===0)return;
+  const nextLv=o.lv+1;if(nextLv>=def.lvnames.length)return;
+  const cost=def.lvcosts[nextLv];if(G.money<cost){showToast('돈이 부족합니다!');return;}
+  G.money-=cost;o.lv=nextLv;
+  showToast(def.e+' → '+def.lvnames[nextLv]+' 업그레이드!');
+}
+function upgradeRoom(){
+  const nr=ROOMS[G.stage+1];if(!nr||nr.cost===Infinity)return;
+  if(G.money<nr.cost){showToast('돈이 부족합니다!');return;}
+  G.money-=nr.cost;G.stage++;
+  updateRoomVisual();renderTab();
+  document.getElementById('lu-ico').textContent=ROOMS[G.stage].emoji;
+  document.getElementById('lu-name').textContent=G.stage+1+'단계: '+ROOMS[G.stage].name;
+  document.getElementById('lu-desc').textContent=ROOMS[G.stage].desc;
+  document.getElementById('lu-modal').classList.add('show');
+}
+function resetGame(){
+  if(!confirm('처음부터 다시 시작하시겠습니까?'))return;
+  localStorage.removeItem('idle_room_v2');location.reload();
+}
+
+// ═══════════════════════════════
+// EVENTS
+// ═══════════════════════════════
+function triggerEvent(){
+  const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)];
+  const fx=ev.fx(ps,G.money);
+  showEvent({e:ev.e,t:ev.t,d:ev.d,fx:fx.txt,effect:fx});
+}
+function showEvent({e,t,d,fx,effect}){
+  document.getElementById('ev-ico').textContent=e;
+  document.getElementById('ev-title').textContent=t;
+  document.getElementById('ev-desc').textContent=d;
+  document.getElementById('ev-fx').textContent=fx||'';
+  pendingEffect=effect||null;
+  document.getElementById('ev-modal').classList.add('show');
+}
+function closeEvent(){
+  document.getElementById('ev-modal').classList.remove('show');
+  if(pendingEffect){
+    if(pendingEffect.type==='money'){G.money+=pendingEffect.v;if(G.money<0)G.money=0;}
+    else if(pendingEffect.type==='buff'){G.buff={mult:pendingEffect.mult,end:Date.now()+pendingEffect.dur*1000};}
+    pendingEffect=null;
+  }
+  renderTab();
+}
+
+// ═══════════════════════════════
+// TOAST
+// ═══════════════════════════════
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(showToast._t);showToast._t=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+// ═══════════════════════════════
+// INIT
+// ═══════════════════════════════
+load();
+updateRoomVisual();
+renderTab();
+updateHUD();
+setInterval(tick,100);
+setInterval(()=>{if(G.stage>=8){const sc=document.getElementById('star-cv');if(sc)drawStars(sc);}},8000);
+window.addEventListener('resize',()=>{const sc=document.getElementById('star-cv');if(sc)drawStars(sc);});
+</script>
+</body>
+</html>
