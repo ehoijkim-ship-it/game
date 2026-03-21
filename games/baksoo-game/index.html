@@ -227,7 +227,7 @@ body{background:#080810;color:#c0d0e0;font-family:'DotGothic16','Courier New',mo
 /* ── CHOICE POPUP ── */
 #choice-popup{position:absolute;z-index:50;background:#1a0e06;border:2px solid #c08040;padding:12px 14px;min-width:190px;display:none;box-shadow:0 0 20px rgba(0,0,0,0.7);}
 #choice-popup h3{font-size:12px;color:#c08040;margin-bottom:8px;border-bottom:1px solid #3a2010;padding-bottom:5px;}
-.choice-btn{display:block;width:100%;background:#2a1800;border:1px solid #4a2a08;color:#e0d0b0;font-family:'DotGothic16',monospace;font-size:11px;padding:6px 9px;cursor:pointer;text-align:left;margin-bottom:4px;transition:background 0.15s;}
+.choice-btn{display:block;width:100%;background:#2a1800;border:1px solid #4a2a08;color:#e0d0b0;font-family:'DotGothic16',monospace;font-size:11px;padding:10px 9px;cursor:pointer;text-align:left;margin-bottom:4px;transition:background 0.15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
 .choice-btn:hover{background:#3a2400;border-color:#c08040;}
 .choice-btn.locked{opacity:0.38;cursor:not-allowed;}
 .choice-cancel{color:#706050 !important;}
@@ -1875,29 +1875,7 @@ window.addEventListener('resize', scaleGame);
   const room = document.getElementById('room');
   if (!room) return;
 
-  // 터치 스와이프
-  let touchStartX = 0, touchStartY = 0;
-  room.addEventListener('touchstart', e => {
-    const t = e.touches[0];
-    touchStartX = t.clientX;
-    touchStartY = t.clientY;
-  }, { passive: true });
-
-  room.addEventListener('touchend', e => {
-    const t = e.changedTouches[0];
-    const dx = t.clientX - touchStartX;
-    const dy = t.clientY - touchStartY;
-    const adx = Math.abs(dx), ady = Math.abs(dy);
-    if (adx < 20 && ady < 20) {
-      checkInteract();
-    } else if (adx >= ady) {
-      simulateMove(dx > 0 ? 'ArrowRight' : 'ArrowLeft');
-    } else {
-      simulateMove(dy > 0 ? 'ArrowDown' : 'ArrowUp');
-    }
-  }, { passive: true });
-
-  // 마우스 (누르는 동안 계속 이동, 대각선 지원, 오브젝트 클릭 시 자동이동)
+  // 마우스/터치 공통
   let mouseHeldKeys = [];
 
   function getRoomPos(e) {
@@ -1905,12 +1883,13 @@ window.addEventListener('resize', scaleGame);
     const scaler = document.getElementById('game-scaler');
     const m = (scaler ? scaler.style.transform : '').match(/scale\(([\d.]+)\)/);
     const scale = m ? parseFloat(m[1]) : 1;
-    return { x: (e.clientX - rect.left) / scale, y: (e.clientY - rect.top) / scale };
+    const src = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : e);
+    return { x: (src.clientX - rect.left) / scale, y: (src.clientY - rect.top) / scale };
   }
 
-  // 클릭 위치가 어떤 오브젝트 박스 안(또는 근처)인지 반환
-  function findClickedObj(px, py) {
-    const PAD = 18;
+  // 클릭/터치 위치가 어떤 오브젝트 박스 안(또는 근처)인지 반환
+  function findClickedObj(px, py, pad) {
+    const PAD = pad || 18;
     for (const [id, box] of Object.entries(OBJ_LAYOUT)) {
       if (px >= box.x - PAD && px <= box.x + box.w + PAD &&
           py >= box.y - PAD && py <= box.y + box.h + PAD) return id;
@@ -1934,27 +1913,61 @@ window.addEventListener('resize', scaleGame);
     mouseHeldKeys = [];
   }
 
-  room.addEventListener('mousedown', e => {
-    // 행동창 또는 아리(고양이) 클릭 시 room 이벤트 무시
+  function handlePointerDown(e, isTouch) {
     if (e.target.closest('#choice-popup') || e.target.closest('#cat')) return;
+    if (isTouch && e.cancelable) e.preventDefault();
     const { x: px, y: py } = getRoomPos(e);
-    // 오브젝트 클릭 감지 → 자동 이동 후 상호작용
-    const objId = findClickedObj(px, py);
+    const pad = isTouch ? 32 : 18; // 터치는 히트박스 넓게
+    const objId = findClickedObj(px, py, pad);
     if (objId) {
       releaseMouseKeys();
       walkTarget = { objId, stuckFrames: 0 };
       return;
     }
-    // 일반 방향 이동
     walkTarget = null;
     const d = getClickDirs(px, py);
     if (d === 'interact') { checkInteract(); return; }
     releaseMouseKeys();
     mouseHeldKeys = d;
     mouseHeldKeys.forEach(k => { keys[k] = true; });
-  });
+  }
+
+  function handleTouchMove(e) {
+    if (e.target.closest('#choice-popup')) return;
+    if (e.cancelable) e.preventDefault();
+    if (walkTarget) return; // 자동워크 중엔 터치무브 무시
+    const { x: px, y: py } = getRoomPos(e);
+    const d = getClickDirs(px, py);
+    if (d === 'interact') return;
+    releaseMouseKeys();
+    mouseHeldKeys = d;
+    mouseHeldKeys.forEach(k => { keys[k] = true; });
+  }
+
+  room.addEventListener('mousedown', e => handlePointerDown(e, false));
   room.addEventListener('mouseup', releaseMouseKeys);
   room.addEventListener('mouseleave', releaseMouseKeys);
+
+  room.addEventListener('touchstart', e => handlePointerDown(e, true), { passive: false });
+  room.addEventListener('touchmove',  handleTouchMove, { passive: false });
+  room.addEventListener('touchend',   releaseMouseKeys, { passive: true });
+  room.addEventListener('touchcancel',releaseMouseKeys, { passive: true });
+
+  // 고양이 터치 즉시 반응 (onclick 300ms 지연 우회)
+  const catEl = document.getElementById('cat');
+  if (catEl) {
+    catEl.addEventListener('touchend', e => {
+      e.stopPropagation();
+      interact('cat');
+    }, { passive: true });
+  }
+
+  // 행동창 버튼 터치 즉시 반응
+  document.getElementById('choice-popup').addEventListener('touchstart', e => {
+    e.stopPropagation();
+    const btn = e.target.closest('.choice-btn');
+    if (btn && !btn.classList.contains('locked')) btn.click();
+  }, { passive: true });
 })();
 
 runOpening();
