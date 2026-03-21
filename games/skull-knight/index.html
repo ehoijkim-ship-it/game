@@ -148,8 +148,7 @@ canvas {
     <div class="ds-title">GAME OVER</div>
     <div class="ds-score" id="ds-score-val"></div>
     <div class="ds-sub" id="ds-sub-val"></div>
-    <button class="ds-btn" id="ds-shop-btn">⚔ UPGRADE SHOP</button>
-    <button class="ds-btn" id="ds-retry-btn" style="margin-top:8px">▶ PLAY AGAIN</button>
+    <button class="ds-btn" id="ds-retry-btn">▶ PLAY AGAIN</button>
   </div>
 </div>
 <div id="info">SPACE / ↑ : JUMP &nbsp;·&nbsp; Z / X : 검 투척 &nbsp;·&nbsp; COLLECT COINS &nbsp;·&nbsp; DEFEAT BOSSES</div>
@@ -178,25 +177,16 @@ function lerpHex(a, b, t) {
 let state = 'menu';
 let score = 0, frame = 0, gameSpeed = 5;
 let highScore = +localStorage.getItem('sk_hs') || 0;
-let coins     = +localStorage.getItem('sk_coins') || 0;
 let nextBossScore = 2000;
 let bossActive = false, bossCount = 0;
-let timeOfDay = 0; // 0=새벽, 0.35=아침, 0.55=오후, 0.75=노을, 1.0=밤
+let timeOfDay = 0;
 
-// ── UPGRADES ───────────────────────────────────────
-const up = {
-  doubleJump:  +localStorage.getItem('sk_dj') || 0,
-  attackPower: +localStorage.getItem('sk_ap') || 1,
-  coinMagnet:  +localStorage.getItem('sk_cm') || 0,
-  shield:      +localStorage.getItem('sk_sh') || 0,
-};
-function saveUpgrades(){
-  localStorage.setItem('sk_dj', up.doubleJump);
-  localStorage.setItem('sk_ap', up.attackPower);
-  localStorage.setItem('sk_cm', up.coinMagnet);
-  localStorage.setItem('sk_sh', up.shield);
-  localStorage.setItem('sk_coins', coins);
-}
+// ── 런-업그레이드 (매 게임 리셋) ───────────────────
+let up = { doubleJump:0, attackPower:1, shield:0 };
+
+// ── 파워아이템 ──────────────────────────────────────
+let powerItems = [];
+let powerSpawnTimer = 0, powerSpawnInterval = 480;
 
 // ── PLAYER ─────────────────────────────────────────
 const PW = P*10, PH = P*12;
@@ -211,7 +201,7 @@ let sword = null;
 // sword = { x, y, vx, angle, maxX, phase:'out'|'return', hitIds:Set }
 
 // ── ENTITIES ──────────────────────────────────────
-let obstacles=[], coinItems=[], particles=[], bossBullets=[];
+let obstacles=[], particles=[], bossBullets=[];
 let boss = null;
 let obIdCounter = 0;
 
@@ -226,17 +216,7 @@ let bgHills = Array.from({length:10},(_,i)=>({x:i*110+Math.random()*60, h:15+Mat
 const cloudDefs = [[100,38,1],[290,22,0.8],[490,50,1.1],[660,28,0.9],[780,44,0.7]];
 
 // ── SPAWN TIMERS ──────────────────────────────────
-let obstacleTimer=0, coinTimer=0, obstacleInterval=90;
-
-// ── SHOP ──────────────────────────────────────────
-const SHOP_DEF = [
-  { id:'doubleJump',  name:'DOUBLE JUMP',  desc:'2단 점프 해금',       costs:[50],          max:1 },
-  { id:'attackPower', name:'SWORD POWER',  desc:'검 공격력 업그레이드', costs:[0,30,60,100], max:3 },
-  { id:'coinMagnet',  name:'COIN MAGNET',  desc:'코인 자동 흡수',       costs:[80],          max:1 },
-  { id:'shield',      name:'BONE SHIELD',  desc:'1회 피격 무효',        costs:[100],         max:1 },
-];
-function shopCost(def){ return def.costs[Math.min(up[def.id],def.costs.length-1)]; }
-function shopOwned(def){ return up[def.id]>=def.max; }
+let obstacleTimer=0, obstacleInterval=90;
 
 // ── INPUT ──────────────────────────────────────────
 const keys={};
@@ -245,7 +225,6 @@ document.addEventListener('keydown',e=>{
   keys[e.code]=true;
   if(state==='menu'&&(e.code==='Space'||e.code==='Enter')) startGame();
   else if(state==='dead'&&(e.code==='Space'||e.code==='Enter')){ startGame(); }
-  else if(state==='shop'&&(e.code==='Escape'||e.code==='KeyQ')){ state='menu'; frame=0; }
   else if(state==='playing'||state==='boss'){
     if(e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW') doJump();
     if(e.code==='KeyZ'||e.code==='KeyX'||e.code==='ShiftLeft'||e.code==='ShiftRight') doAttack();
@@ -259,16 +238,13 @@ canvas.addEventListener('touchstart',e=>{
   const cx=(e.touches[0].clientX-rect.left)*(W/rect.width);
   const cy=(e.touches[0].clientY-rect.top)*(H/rect.height);
   if(state==='menu'){ startGame(); return; }
-  if(state==='shop'){ handleShopClick(cx,cy); return; }
   if(cx>W*0.6) doAttack(); else doJump();
 },{passive:false});
 
 canvas.addEventListener('click',e=>{
   const rect=canvas.getBoundingClientRect();
   const cx=(e.clientX-rect.left)*(W/rect.width);
-  const cy=(e.clientY-rect.top)*(H/rect.height);
   if(state==='menu'){ startGame(); return; }
-  if(state==='shop'){ handleShopClick(cx,cy); return; }
 });
 
 // ── 조작 버튼 (터치 + 마우스) ──────────────────────
@@ -319,22 +295,22 @@ function doAttack(){
 function startGame(){
   document.getElementById('dead-screen').classList.remove('show');
   state='playing'; score=0; frame=0; gameSpeed=5;
-  obstacles=[]; coinItems=[]; particles=[]; bossBullets=[]; boss=null;
+  obstacles=[]; powerItems=[]; particles=[]; bossBullets=[]; boss=null;
   bossActive=false; nextBossScore=2000; bossCount=0;
-  obstacleTimer=0; coinTimer=0; obstacleInterval=90;
+  obstacleTimer=0; obstacleInterval=90;
+  powerSpawnTimer=0; powerSpawnInterval=480;
   timeOfDay=0; sword=null; obIdCounter=0;
+  up = { doubleJump:0, attackPower:1, shield:0 };
   pl.y=GROUND-PH; pl.vy=0; pl.onGround=true; pl.jumpsLeft=0;
-  pl.attacking=false; pl.invincible=0;
-  pl.shieldHp=up.shield>0?1:0;
+  pl.attacking=false; pl.invincible=0; pl.shieldHp=0;
 }
 
 function gameOver(){
   state='dead'; frame=0;
   if(score>highScore){ highScore=score; localStorage.setItem('sk_hs',highScore); }
-  localStorage.setItem('sk_coins',coins);
   spawnPfx(pl.x+PW/2,pl.y+PH/2,'#ef4444',25);
   document.getElementById('ds-score-val').textContent = `SCORE  ${score}`;
-  document.getElementById('ds-sub-val').textContent = `COINS ${coins}   BEST ${highScore}`;
+  document.getElementById('ds-sub-val').textContent = `BEST  ${highScore}`;
   document.getElementById('dead-screen').classList.add('show');
 }
 
@@ -355,9 +331,41 @@ function spawnObstacle(){
   obstacles.push(ob);
 }
 
-function spawnCoin(){
-  coinItems.push({x:W+10,y:GROUND-PH-Math.random()*P*16-P*4,collected:false,r:P*2.5});
+// ── 파워아이템 스폰 ───────────────────────────────
+const POWER_DEFS = [
+  { type:'dj',     label:'2단 점프',   color:'#4ade80', bg:'rgba(74,222,128,0.15)' },
+  { type:'sword',  label:'검 파워업',  color:'#fb923c', bg:'rgba(251,146,60,0.15)' },
+  { type:'shield', label:'보호막',     color:'#38bdf8', bg:'rgba(56,189,248,0.15)' },
+];
+function spawnPowerItem(){
+  // 이미 있는 타입은 제외
+  const available = POWER_DEFS.filter(d=>{
+    if(d.type==='dj'&&up.doubleJump) return false;
+    if(d.type==='sword'&&up.attackPower>=3) return false;
+    if(d.type==='shield'&&pl.shieldHp>0) return false;
+    return true;
+  });
+  if(!available.length) return;
+  const def=available[Math.floor(Math.random()*available.length)];
+  powerItems.push({
+    x:W+10, y:GROUND-PH*1.5,
+    type:def.type, label:def.label,
+    color:def.color, bg:def.bg,
+    r:P*3.5, collected:false,
+    labelTimer:0,
+  });
 }
+
+function applyPowerItem(item){
+  if(item.type==='dj'){ up.doubleJump=1; }
+  else if(item.type==='sword'){ up.attackPower=Math.min(up.attackPower+1,3); }
+  else if(item.type==='shield'){ pl.shieldHp=1; }
+  // HUD 알림용 타이머 저장
+  lastPickup = { label:item.label, color:item.color, timer:180 };
+}
+
+// 마지막 픽업 알림
+let lastPickup = null;
 
 function spawnBoss(){
   bossCount++;
@@ -380,21 +388,6 @@ function spawnPfx(x,y,color,n){
 }
 
 // ── SHOP ──────────────────────────────────────────
-function handleShopClick(mx,my){
-  const ih=Math.floor((H-165)/SHOP_DEF.length);
-  SHOP_DEF.forEach((def,i)=>{
-    const iy=108+i*ih;
-    if(my>=iy&&my<=iy+ih-6&&mx>=50&&mx<=W-50){
-      if(!shopOwned(def)&&coins>=shopCost(def)&&shopCost(def)>0){
-        coins-=shopCost(def);
-        up[def.id]=Math.min(up[def.id]+1,def.max);
-        saveUpgrades();
-        spawnPfx(W/2,H/2,'#fbbf24',18);
-      }
-    }
-  });
-  if(mx>=W/2-100&&mx<=W/2+100&&my>=H-50&&my<=H-18){ state='menu'; frame=0; }
-}
 
 // ── UPDATE ────────────────────────────────────────
 function update(){
@@ -426,7 +419,11 @@ function update(){
       obstacleInterval=Math.max(38,90-Math.floor(score/180)*4);
       spawnObstacle();
     }
-    if(++coinTimer>=55){ coinTimer=0; if(Math.random()<0.65) spawnCoin(); }
+    if(++powerSpawnTimer>=powerSpawnInterval){
+      powerSpawnTimer=0;
+      powerSpawnInterval=400+Math.floor(Math.random()*300);
+      if(Math.random()<0.7) spawnPowerItem();
+    }
   }
 
   // ── 검 투척 업데이트 ─────────────────────────────
@@ -489,15 +486,20 @@ function update(){
   });
   obstacles=obstacles.filter(o=>!o.dead&&o.x>-120);
 
-  // 코인
-  coinItems.forEach(c=>{
-    c.x-=gameSpeed;
-    if(up.coinMagnet){ const dx=(pl.x+PW/2)-c.x,dy=(pl.y+PH/2)-c.y,d=Math.hypot(dx,dy); if(d<160){ c.x+=dx*0.1; c.y+=dy*0.1; } }
-    if(!c.collected&&Math.abs((pl.x+PW/2)-c.x)<c.r+PW*0.5&&Math.abs((pl.y+PH/2)-c.y)<c.r+PH*0.5){
-      c.collected=true; coins++; score+=10; spawnPfx(c.x,c.y,'#fbbf24',6);
+  // 파워아이템
+  powerItems.forEach(item=>{
+    item.x -= gameSpeed;
+    if(item.labelTimer>0) item.labelTimer--;
+    if(!item.collected){
+      const dx=(pl.x+PW/2)-item.x, dy=(pl.y+PH/2)-item.y;
+      if(Math.hypot(dx,dy)<item.r+PW*0.5){
+        item.collected=true;
+        applyPowerItem(item);
+        spawnPfx(item.x,item.y,item.color,14);
+      }
     }
   });
-  coinItems=coinItems.filter(c=>!c.collected&&c.x>-50);
+  powerItems=powerItems.filter(i=>!i.collected&&i.x>-60);
 
   // 보스
   if(boss){
@@ -518,7 +520,7 @@ function update(){
          pl.x+PW*0.75>boss.x+boss.w*0.1&&pl.x+PW*0.15<boss.x+boss.w*0.9&&
          pl.y+PH*0.85>boss.y+boss.h*0.1&&pl.y+PH*0.15<boss.y+boss.h*0.9) hitPlayer();
       if(boss.hp<=0){
-        score+=500; coins+=8;
+        score+=500;
         spawnPfx(boss.x+boss.w/2,boss.y+boss.h/2,'#a855f7',35);
         spawnPfx(boss.x+boss.w/2,boss.y+boss.h/2,'#fbbf24',25);
         boss=null; bossActive=false; bossBullets=[];
@@ -747,10 +749,18 @@ function drawSword(){
 function drawObstacles(){
   obstacles.forEach(ob=>{
     if(ob.type==='cactus'){
-      px(ob.x+P*2,ob.y-ob.h,P*2,ob.h,ob.color);
-      px(ob.x+P,  ob.y-ob.h,P*4,P*2,ob.color);
-      px(ob.x,    ob.y-ob.h+P*3,P*2,P*4,ob.color);
-      px(ob.x+P*4,ob.y-ob.h+P*2,P*2,P*3,ob.color);
+      // 지면 그림자
+      ctx.fillStyle='rgba(0,0,0,0.35)';
+      ctx.beginPath(); ctx.ellipse(ob.x+ob.w/2,ob.y+1,ob.w*0.7,3,0,0,Math.PI*2); ctx.fill();
+      // 밝은 초록 + 외곽선
+      const cc='#4ade80', cd='#16a34a';
+      px(ob.x+P*2,ob.y-ob.h,P*2,ob.h,cc);
+      px(ob.x+P,  ob.y-ob.h,P*4,P*2,cc);
+      px(ob.x,    ob.y-ob.h+P*3,P*2,P*4,cc);
+      px(ob.x+P*4,ob.y-ob.h+P*2,P*2,P*3,cc);
+      // 밝은 테두리 하이라이트
+      px(ob.x+P*2,ob.y-ob.h,P,ob.h,'#86efac');
+      px(ob.x+P,ob.y-ob.h,P*4,P,'#86efac');
       if(ob.maxHp>1){
         px(ob.x,ob.y-ob.h-P*3,ob.w,P*2,'#1e293b');
         px(ob.x,ob.y-ob.h-P*3,ob.w*(ob.hp/ob.maxHp),P*2,'#ef4444');
@@ -758,34 +768,75 @@ function drawObstacles(){
     } else if(ob.type==='bird'){
       const bb=Math.sin(frame*0.14)*5;
       const by=ob.y+bb, wf=Math.floor(frame/5)%2;
-      px(ob.x+P*2,by+P,   P*5,P*4,ob.color);
-      px(ob.x+P*6,by,     P*3,P*3,ob.color);
+      // 주황색을 더 밝게
+      const bc='#fb923c', bd='#ea580c';
+      px(ob.x+P*2,by+P,   P*5,P*4,bc);
+      px(ob.x+P*6,by,     P*3,P*3,bc);
       px(ob.x+P*9,by+P,   P*2,P,  '#fde68a');
-      px(ob.x+P*7,by+P,   P,  P,  '#000');
+      px(ob.x+P*7,by+P,   P,  P,  '#1e293b');
+      // 하이라이트
+      px(ob.x+P*2,by+P,P*5,P,'#fed7aa');
       if(wf===0){
-        px(ob.x,    by-P*3,P*3,P*4,ob.color);
-        px(ob.x+P*3,by+P*3,P*3,P*2,'#c2410c');
+        px(ob.x,    by-P*3,P*3,P*4,bc);
+        px(ob.x+P*3,by+P*3,P*3,P*2,bd);
       } else {
-        px(ob.x,    by+P*2,P*3,P*2,ob.color);
-        px(ob.x+P*3,by-P*2,P*4,P*3,'#c2410c');
+        px(ob.x,    by+P*2,P*3,P*2,bc);
+        px(ob.x+P*3,by-P*2,P*4,P*3,bd);
       }
     } else if(ob.type==='spike'){
-      ctx.fillStyle=ob.color;
+      // 지면 그림자
+      ctx.fillStyle='rgba(0,0,0,0.35)';
+      ctx.beginPath(); ctx.ellipse(ob.x+ob.w/2,ob.y+1,ob.w*0.8,3,0,0,Math.PI*2); ctx.fill();
+      // 빨간 가시 (밝고 선명하게)
       for(let i=0;i<3;i++){
         const sx=ob.x+i*P*2;
+        // 외곽 (어두운 붉은색)
+        ctx.fillStyle='#991b1b';
+        ctx.beginPath(); ctx.moveTo(sx-1,ob.y+1); ctx.lineTo(sx+P,ob.y-ob.h-1); ctx.lineTo(sx+P*2+1,ob.y+1); ctx.fill();
+        // 메인 밝은 빨강
+        ctx.fillStyle='#f87171';
         ctx.beginPath(); ctx.moveTo(sx,ob.y); ctx.lineTo(sx+P,ob.y-ob.h); ctx.lineTo(sx+P*2,ob.y); ctx.fill();
+        // 하이라이트
+        ctx.fillStyle='#fca5a5';
+        ctx.beginPath(); ctx.moveTo(sx+P*0.4,ob.y); ctx.lineTo(sx+P,ob.y-ob.h+P); ctx.lineTo(sx+P*0.8,ob.y); ctx.fill();
+      }
+      // 빨간 글로우
+      ctx.fillStyle='rgba(248,113,113,0.18)';
+      for(let i=0;i<3;i++){
+        const sx=ob.x+i*P*2;
+        ctx.beginPath(); ctx.moveTo(sx-4,ob.y+4); ctx.lineTo(sx+P,ob.y-ob.h-6); ctx.lineTo(sx+P*2+4,ob.y+4); ctx.fill();
       }
     }
   });
 }
 
-function drawCoins(){
-  coinItems.forEach(c=>{
-    const wb=Math.sin(frame*0.1+c.x*0.01)*2;
-    const cy=c.y+wb;
-    ctx.fillStyle='rgba(251,191,36,0.18)'; ctx.beginPath(); ctx.arc(c.x,cy,c.r*2.2,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#f59e0b'; ctx.beginPath(); ctx.arc(c.x,cy,c.r,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#fde68a'; ctx.beginPath(); ctx.arc(c.x-c.r*0.25,cy-c.r*0.25,c.r*0.4,0,Math.PI*2); ctx.fill();
+function drawPowerItems(){
+  powerItems.forEach(item=>{
+    const wb=Math.sin(frame*0.1+item.x*0.01)*3;
+    const iy=item.y+wb;
+    const r=item.r;
+    // 외곽 글로우
+    ctx.fillStyle=item.bg; ctx.beginPath(); ctx.arc(item.x,iy,r*2.8,0,Math.PI*2); ctx.fill();
+    // 메인 원
+    ctx.fillStyle=item.color; ctx.beginPath(); ctx.arc(item.x,iy,r,0,Math.PI*2); ctx.fill();
+    // 내부 흰 하이라이트
+    ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.arc(item.x-r*0.25,iy-r*0.25,r*0.35,0,Math.PI*2); ctx.fill();
+    // 아이콘
+    ctx.save();
+    ctx.fillStyle='#fff';
+    ctx.font=`${P*2.5}px monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    const icon = item.type==='dj'?'↑↑':item.type==='sword'?'⚔':'◈';
+    ctx.fillText(icon, item.x, iy);
+    ctx.restore();
+    // 위에 라벨
+    ctx.save();
+    ctx.globalAlpha = 0.85 + Math.sin(frame*0.08)*0.15;
+    ctx.fillStyle=item.color;
+    ctx.font=`${P*1.5}px 'Press Start 2P',monospace`;
+    ctx.textAlign='center';
+    ctx.fillText(item.label, item.x, iy-r-6);
+    ctx.restore();
   });
 }
 
@@ -875,11 +926,28 @@ function drawHUD(){
   ctx.fillText(`${score}`,20,30);
   ctx.fillStyle='#475569'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
   ctx.fillText(`HI ${highScore}`,20,50);
-  ctx.textAlign='right';
-  ctx.fillStyle='#fbbf24'; ctx.font=`${P*3}px 'Press Start 2P',monospace`;
-  ctx.fillText(`$ ${coins}`,W-20,30);
-  ctx.fillStyle='#475569'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
-  ctx.fillText(`SPD ${gameSpeed.toFixed(1)}`,W-20,50);
+
+  // 파워업 아이콘 표시 (우상단)
+  const icons = [];
+  if(up.doubleJump) icons.push({label:'2JUMP', color:'#4ade80'});
+  if(up.attackPower>=2) icons.push({label:`SW+${up.attackPower-1}`, color:'#fb923c'});
+  if(pl.shieldHp>0) icons.push({label:'SHIELD', color:'#38bdf8'});
+  ctx.font=`${P*1.8}px 'Press Start 2P',monospace`; ctx.textAlign='right';
+  icons.forEach((ic,i)=>{
+    ctx.fillStyle=ic.color;
+    ctx.fillText(ic.label, W-20, 28+i*18);
+  });
+
+  // 픽업 알림
+  if(lastPickup&&lastPickup.timer>0){
+    lastPickup.timer--;
+    const a=Math.min(lastPickup.timer/30,1);
+    ctx.globalAlpha=a;
+    ctx.fillStyle=lastPickup.color;
+    ctx.font=`${P*2.5}px 'Press Start 2P',monospace`; ctx.textAlign='center';
+    ctx.fillText(`GET! ${lastPickup.label}`, W/2, H/2-40);
+    ctx.globalAlpha=1;
+  }
 
   // 보스 게이지
   if(state==='playing'){
@@ -924,7 +992,7 @@ function drawMenu(){
     ctx.fillText('SPACE / TAP  TO  START',W/2,H/2+58);
   }
   ctx.fillStyle='#fbbf24'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
-  ctx.fillText(`BEST ${highScore}   COINS ${coins}`,W/2,H/2+88);
+  ctx.fillText(`BEST ${highScore}`,W/2,H/2+88);
 }
 
 function drawDead(){
@@ -932,47 +1000,6 @@ function drawDead(){
   ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(0,0,W,H);
 }
 
-function drawShop(){
-  ctx.fillStyle='#030308'; ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(168,85,247,0.05)'; ctx.lineWidth=1;
-  for(let x=0;x<W;x+=40){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-  for(let y=0;y<H;y+=40){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-  ctx.save();
-  ctx.shadowColor='#a855f7'; ctx.shadowBlur=15;
-  ctx.fillStyle='#e8e0d0'; ctx.font=`${P*4}px 'Press Start 2P',monospace`;
-  ctx.textAlign='center'; ctx.fillText('UPGRADE SHOP',W/2,52);
-  ctx.restore();
-  ctx.fillStyle='#fbbf24'; ctx.font=`${P*3}px 'Press Start 2P',monospace`;
-  ctx.textAlign='center'; ctx.fillText(`COINS: ${coins}`,W/2,80);
-  const ih=Math.floor((H-165)/SHOP_DEF.length);
-  SHOP_DEF.forEach((def,i)=>{
-    const iy=108+i*ih, cur=up[def.id], owned=shopOwned(def), cost=shopCost(def);
-    const canBuy=!owned&&coins>=cost&&cost>0;
-    ctx.fillStyle=owned?'rgba(168,85,247,0.1)':canBuy?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.3)';
-    ctx.strokeStyle=owned?'#a855f7':canBuy?'#334155':'#1e293b';
-    ctx.lineWidth=1;
-    ctx.fillRect(50,iy,W-100,ih-6); ctx.strokeRect(50,iy,W-100,ih-6);
-    if(def.max>1){ for(let l=0;l<def.max;l++) px(55+l*14,iy+6,10,8,l<cur?'#a855f7':'#1e293b'); }
-    ctx.fillStyle=owned?'#c084fc':canBuy?'#e2e8f0':'#475569';
-    ctx.font=`${P*2}px 'Press Start 2P',monospace`; ctx.textAlign='left';
-    ctx.fillText(def.name,60,iy+28);
-    ctx.fillStyle='#64748b'; ctx.font=`${P*1.5}px 'Press Start 2P',monospace`;
-    ctx.fillText(def.desc,60,iy+44);
-    ctx.textAlign='right';
-    if(owned){
-      ctx.fillStyle='#a855f7'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
-      ctx.fillText('✓ OWNED',W-60,iy+28);
-    } else {
-      ctx.fillStyle=canBuy?'#fbbf24':'#475569'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
-      ctx.fillText(`$ ${cost}`,W-60,iy+28);
-    }
-  });
-  const bx=W/2-100, by2=H-50;
-  ctx.fillStyle='rgba(168,85,247,0.2)'; ctx.strokeStyle='#a855f7'; ctx.lineWidth=1;
-  ctx.fillRect(bx,by2,200,30); ctx.strokeRect(bx,by2,200,30);
-  ctx.fillStyle='#a855f7'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
-  ctx.textAlign='center'; ctx.fillText('[ Q / TAP ] CONTINUE',W/2,by2+19);
-}
 
 // ── MAIN LOOP ─────────────────────────────────────
 function loop(){
@@ -997,26 +1024,19 @@ function loop(){
     drawMenu();
   } else if(state==='playing'||state==='boss'){
     update();
-    drawObstacles(); drawCoins();
+    drawObstacles(); drawPowerItems();
     drawBoss(); drawBossBullets();
     drawSword(); drawPlayer(); drawParticles(); drawHUD();
   } else if(state==='dead'){
     frame++;
-    drawObstacles(); drawCoins(); drawSword(); drawPlayer(); drawParticles();
+    drawObstacles(); drawPowerItems(); drawSword(); drawPlayer(); drawParticles();
     drawDead();
-  } else if(state==='shop'){
-    frame++;
-    drawParticles(); drawShop();
   }
 
   requestAnimationFrame(loop);
 }
 
 // ── DEAD-SCREEN 버튼 ──────────────────────────────
-document.getElementById('ds-shop-btn').addEventListener('click',()=>{
-  document.getElementById('dead-screen').classList.remove('show');
-  state='shop'; frame=0;
-});
 document.getElementById('ds-retry-btn').addEventListener('click',()=>{
   startGame();
 });
