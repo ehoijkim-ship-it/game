@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ehoijkim-ship-it.github.io/game/sitemap.xml
