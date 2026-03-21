@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>제휴 문의 - GamePortal</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        .contact-wrapper {
+            max-width: 620px;
+            margin: 3rem auto;
+            padding: 0 20px 4rem;
+        }
+
+        .contact-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            padding: 2.5rem 2.5rem 2rem;
+        }
+
+        .contact-card h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .contact-card .subtitle {
+            color: #666;
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #444;
+            margin-bottom: 0.4rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.7rem 0.9rem;
+            border: 1.5px solid #dde3ec;
+            border-radius: 8px;
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: 0.95rem;
+            color: #333;
+            background: #f9fafb;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52,152,219,0.12);
+            background: #fff;
+        }
+
+        .form-group textarea {
+            height: 130px;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 0.85rem;
+            background: #2c3e50;
+            color: #fff;
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .submit-btn:hover {
+            background: #3498db;
+        }
+
+        .submit-btn:active {
+            transform: scale(0.98);
+        }
+
+        .success-msg {
+            display: none;
+            text-align: center;
+            padding: 2.5rem 1rem;
+        }
+
+        .success-msg .icon {
+            font-size: 3rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .success-msg h3 {
+            font-size: 1.3rem;
+            color: #2c3e50;
+            margin-bottom: 0.4rem;
+        }
+
+        .success-msg p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 500px) {
+            .contact-card { padding: 1.5rem 1.2rem; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container header-container">
+            <h1 class="logo">GamePortal</h1>
+            <nav class="nav">
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="contact.html" style="color:#3498db;">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="contact-wrapper">
+        <div class="contact-card">
+            <!-- 폼 영역 -->
+            <div id="form-section">
+                <h2>제휴 문의</h2>
+                <p class="subtitle">광고, 콘텐츠 협력, 게임 입점 등 다양한 제휴 문의를 환영합니다.<br>작성해 주시면 영업일 기준 1~2일 내에 답변드립니다.</p>
+
+                <form id="contact-form" action="https://formspree.io/f/mdawjqoe" method="POST">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">담당자 이름 *</label>
+                            <input type="text" id="name" name="name" placeholder="홍길동" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="company">회사/브랜드명</label>
+                            <input type="text" id="company" name="company" placeholder="(주)예시기업">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">이메일 *</label>
+                        <input type="email" id="email" name="email" placeholder="example@company.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="type">문의 유형 *</label>
+                        <select id="type" name="inquiry_type" required>
+                            <option value="" disabled selected>선택해 주세요</option>
+                            <option value="광고">광고 협력</option>
+                            <option value="게임입점">게임 입점 제안</option>
+                            <option value="콘텐츠">콘텐츠 협력</option>
+                            <option value="스폰서십">스폰서십</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">문의 내용 *</label>
+                        <textarea id="message" name="message" placeholder="제휴 목적 및 내용을 간략히 적어주세요." required></textarea>
+                    </div>
+
+                    <!-- Formspree 봇 방지 (hidden) -->
+                    <input type="text" name="_gotcha" style="display:none">
+
+                    <button type="submit" class="submit-btn">문의 보내기</button>
+                </form>
+            </div>
+
+            <!-- 전송 완료 메시지 -->
+            <div class="success-msg" id="success-msg">
+                <div class="icon">✅</div>
+                <h3>문의가 접수되었습니다!</h3>
+                <p>빠른 시일 내에 이메일로 답변드리겠습니다.<br>감사합니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container footer-container">
+            <p>&copy; 2026 GamePortal. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        const form = document.getElementById('contact-form');
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = form.querySelector('.submit-btn');
+            btn.textContent = '전송 중...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (res.ok) {
+                    document.getElementById('form-section').style.display = 'none';
+                    document.getElementById('success-msg').style.display = 'block';
+                } else {
+                    alert('전송에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+                    btn.textContent = '문의 보내기';
+                    btn.disabled = false;
+                }
+            } catch {
+                alert('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+                btn.textContent = '문의 보내기';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
