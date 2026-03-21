@@ -141,6 +141,7 @@ canvas {
 </style>
 </head>
 <body>
+<button id="mute-btn" onclick="toggleMute()" style="position:fixed;top:8px;left:80px;z-index:9999;background:rgba(5,2,15,0.82);border:1px solid #3b1f6a;color:#a78bfa;font-family:'Press Start 2P',monospace;font-size:9px;padding:5px 9px;cursor:pointer;white-space:nowrap;">🔊</button>
 <a href="../../index.html" style="position:fixed;top:8px;left:8px;z-index:9999;background:rgba(5,2,15,0.82);border:1px solid #3b1f6a;color:#a78bfa;font-family:'Press Start 2P',monospace;font-size:9px;padding:5px 9px;text-decoration:none;white-space:nowrap;letter-spacing:0.05em;transition:background 0.15s;" onmouseover="this.style.background='rgba(30,10,60,0.95)'" onmouseout="this.style.background='rgba(5,2,15,0.82)'">⌂ HOME</a>
 <div id="wrapper">
   <canvas id="game" width="800" height="320"></canvas>
@@ -218,9 +219,109 @@ const cloudDefs = [[100,38,1],[290,22,0.8],[490,50,1.1],[660,28,0.9],[780,44,0.7
 // ── SPAWN TIMERS ──────────────────────────────────
 let obstacleTimer=0, obstacleInterval=90;
 
+// ══════════════════════════════════════════════════
+// AUDIO SYSTEM (Web Audio API)
+// ══════════════════════════════════════════════════
+let AC=null, masterGain, bgmGain, sfxGain;
+let bgmTimer=null, bgmSeq=null, bgmPos=0, bgmNextTime=0;
+let muteAll = localStorage.getItem('sk_mute')==='1';
+
+function initAudio(){
+  if(AC) return;
+  try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return; }
+  masterGain=AC.createGain(); masterGain.gain.value=muteAll?0:1; masterGain.connect(AC.destination);
+  bgmGain=AC.createGain(); bgmGain.gain.value=0.18; bgmGain.connect(masterGain);
+  sfxGain=AC.createGain(); sfxGain.gain.value=0.55; sfxGain.connect(masterGain);
+}
+
+function toggleMute(){
+  muteAll=!muteAll;
+  localStorage.setItem('sk_mute',muteAll?'1':'0');
+  if(masterGain) masterGain.gain.value=muteAll?0:1;
+  document.getElementById('mute-btn').textContent=muteAll?'🔇':'🔊';
+}
+
+function _note(freq,dur,type,vol,when,dest){
+  if(!AC) return;
+  const t=AC.currentTime+(when||0);
+  const osc=AC.createOscillator(), g=AC.createGain();
+  osc.type=type||'square'; osc.frequency.value=freq;
+  g.gain.setValueAtTime(vol,t);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur*0.9);
+  osc.connect(g); g.connect(dest||sfxGain);
+  osc.start(t); osc.stop(t+dur);
+}
+function _noise(dur,ftype,ffreq,fq,vol,when){
+  if(!AC) return;
+  const len=AC.sampleRate*dur, buf=AC.createBuffer(1,len,AC.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,0.3);
+  const src=AC.createBufferSource(); src.buffer=buf;
+  const f=AC.createBiquadFilter(); f.type=ftype||'bandpass'; f.frequency.value=ffreq||1000; f.Q.value=fq||1;
+  const g=AC.createGain(); g.gain.value=vol||0.3;
+  src.connect(f); f.connect(g); g.connect(sfxGain);
+  const t=AC.currentTime+(when||0); src.start(t); src.stop(t+dur);
+}
+
+// ── SFX ──────────────────────────────────────────
+function sfxJump(){ _note(280,0.06,'square',0.25); _note(370,0.05,'square',0.14,0.05); }
+function sfxDoubleJump(){ _note(420,0.05,'triangle',0.2); _note(560,0.05,'triangle',0.16,0.06); _note(700,0.08,'triangle',0.1,0.12); }
+function sfxAttack(){ _noise(0.07,'bandpass',1400,0.7,0.45); _note(160,0.04,'sawtooth',0.12,0.07); }
+function sfxSwordReturn(){ _note(260,0.03,'square',0.12); _note(200,0.05,'square',0.1,0.03); }
+function sfxHitEnemy(){ _note(220,0.04,'sawtooth',0.28); _noise(0.04,'highpass',2800,1,0.18); }
+function sfxEnemyDie(){ _note(320,0.04,'square',0.2); _note(450,0.04,'square',0.18,0.05); _note(580,0.08,'square',0.13,0.1); }
+function sfxPlayerHurt(){ _note(110,0.1,'sawtooth',0.5); _note(80,0.15,'sawtooth',0.38,0.09); _noise(0.1,'lowpass',450,0.5,0.28); }
+function sfxPowerup(){ _note(440,0.07,'triangle',0.28); _note(554,0.07,'triangle',0.28,0.09); _note(659,0.14,'triangle',0.28,0.17); }
+function sfxBossWarning(){ _note(110,0.35,'sawtooth',0.35); _note(138,0.35,'sawtooth',0.28,0.08); _note(88,0.5,'sawtooth',0.38,0.42); _noise(0.25,'lowpass',280,0.5,0.22,0.42); }
+function sfxBossHit(){ _note(200,0.04,'sawtooth',0.32); _noise(0.05,'highpass',3000,1,0.22); }
+function sfxBossDie(){ [220,277,330,392,494,587,784].forEach((f,i)=>_note(f,0.1+i*0.02,'square',0.22,i*0.08)); _noise(0.5,'lowpass',700,0.5,0.32,0.3); }
+function sfxGameOver(){ _note(220,0.25,'sawtooth',0.4); _note(196,0.25,'sawtooth',0.35,0.22); _note(165,0.5,'sawtooth',0.38,0.44); _note(110,0.8,'sawtooth',0.28,0.9); }
+
+// ── BGM 스케줄러 ──────────────────────────────────
+function _scheduleBGM(){
+  if(!AC||!bgmSeq) return;
+  while(bgmNextTime < AC.currentTime+0.25){
+    const [freq,dur,type,vol]=bgmSeq[bgmPos%bgmSeq.length];
+    if(freq>0) _note(freq,dur*0.85,type||'square',vol||0.15,bgmNextTime-AC.currentTime,bgmGain);
+    bgmNextTime+=dur; bgmPos++;
+  }
+}
+function startBGM(seq){
+  if(!AC) return; stopBGM();
+  bgmSeq=seq; bgmPos=0; bgmNextTime=AC.currentTime+0.05;
+  _scheduleBGM(); bgmTimer=setInterval(_scheduleBGM,80);
+}
+function stopBGM(){ if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null;} bgmSeq=null; }
+
+// ── BGM 시퀀스 ─────────────────────────────────────
+// A단조 기반, 130 BPM
+const _B=60/130, _Q=_B, _E=_B/2, _H=_B*2, _S=_B/4;
+// 노멀 BGM: 어둡고 웅장한 멜로디
+const BGM_PLAY = [
+  [220,_E,'square',0.13],[0,_S],[261.63,_S,'square',0.11],[293.66,_E,'square',0.12],[0,_E],
+  [329.63,_E,'square',0.13],[293.66,_S,'square',0.1],[261.63,_S,'square',0.09],[220,_Q,'square',0.13],[0,_Q],
+  [196,_E,'square',0.11],[0,_S],[220,_S,'square',0.1],[246.94,_E,'square',0.11],[261.63,_E,'square',0.12],
+  [293.66,_H,'square',0.13],[0,_H],
+  [261.63,_E,'square',0.12],[0,_S],[293.66,_S,'square',0.1],[329.63,_Q,'square',0.13],[0,_S],[329.63,_S,'square',0.11],
+  [392,_E,'square',0.13],[349.23,_S,'square',0.1],[329.63,_S,'square',0.09],[293.66,_Q,'square',0.11],[0,_Q],
+  [261.63,_E,'square',0.12],[220,_E,'square',0.11],[196,_E,'square',0.11],[0,_E],
+  [220,_H,'square',0.14],[0,_H],
+];
+// 보스 BGM: 긴박하고 강렬
+const BGM_BOSS = [
+  [440,_S,'sawtooth',0.11],[0,_S],[440,_S,'sawtooth',0.09],[0,_S],[494,_S,'sawtooth',0.11],[0,_S],[523,_S,'sawtooth',0.13],[0,_S],
+  [494,_E,'sawtooth',0.12],[0,_S],[392,_S,'sawtooth',0.1],[349.23,_E,'sawtooth',0.11],[0,_E],
+  [392,_S,'sawtooth',0.12],[0,_S],[392,_S,'sawtooth',0.1],[0,_S],[440,_S,'sawtooth',0.12],[0,_S],[494,_S,'sawtooth',0.1],[0,_S],
+  [523,_Q,'sawtooth',0.13],[0,_E],[440,_E,'sawtooth',0.11],
+  [587,_E,'sawtooth',0.14],[523,_S,'sawtooth',0.11],[494,_E,'sawtooth',0.12],[0,_S],
+  [440,_E,'sawtooth',0.12],[392,_E,'sawtooth',0.11],[349.23,_E,'sawtooth',0.11],[330,_E,'sawtooth',0.1],
+  [293.66,_Q,'sawtooth',0.13],[0,_Q],[0,_H],
+];
+
 // ── INPUT ──────────────────────────────────────────
 const keys={};
 document.addEventListener('keydown',e=>{
+  initAudio();
   if(keys[e.code]) return;
   keys[e.code]=true;
   if(state==='menu'&&(e.code==='Space'||e.code==='Enter')) startGame();
@@ -234,6 +335,7 @@ document.addEventListener('keyup',e=>{ keys[e.code]=false; });
 
 canvas.addEventListener('touchstart',e=>{
   e.preventDefault();
+  initAudio();
   const rect=canvas.getBoundingClientRect();
   const cx=(e.touches[0].clientX-rect.left)*(W/rect.width);
   const cy=(e.touches[0].clientY-rect.top)*(H/rect.height);
@@ -270,14 +372,16 @@ function doJump(){
     pl.vy=-13; pl.onGround=false;
     pl.jumpsLeft=up.doubleJump?1:0;
     spawnPfx(pl.x+PW/2,pl.y+PH,'#d4c9b0',5);
+    sfxJump();
   } else if(pl.jumpsLeft>0){
     pl.vy=-11; pl.jumpsLeft--;
     spawnPfx(pl.x+PW/2,pl.y+PH,'#e8e0d0',8);
+    sfxDoubleJump();
   }
 }
 
 function doAttack(){
-  if(sword) return; // 검이 공중에 있으면 재발사 불가
+  if(sword) return;
   pl.attacking=true;
   sword={
     x: pl.x+PW+4,
@@ -289,10 +393,12 @@ function doAttack(){
     hitIds: new Set(),
   };
   spawnPfx(pl.x+PW+P*4, pl.y+PH*0.38,'#fbbf24',5);
+  sfxAttack();
 }
 
 // ── GAME FLOW ─────────────────────────────────────
 function startGame(){
+  initAudio();
   document.getElementById('dead-screen').classList.remove('show');
   state='playing'; score=0; frame=0; gameSpeed=5;
   obstacles=[]; powerItems=[]; particles=[]; bossBullets=[]; boss=null;
@@ -303,12 +409,14 @@ function startGame(){
   up = { doubleJump:0, attackPower:1, shield:0 };
   pl.y=GROUND-PH; pl.vy=0; pl.onGround=true; pl.jumpsLeft=0;
   pl.attacking=false; pl.invincible=0; pl.shieldHp=0;
+  startBGM(BGM_PLAY);
 }
 
 function gameOver(){
   state='dead'; frame=0;
   if(score>highScore){ highScore=score; localStorage.setItem('sk_hs',highScore); }
   spawnPfx(pl.x+PW/2,pl.y+PH/2,'#ef4444',25);
+  stopBGM(); sfxGameOver();
   document.getElementById('ds-score-val').textContent = `SCORE  ${score}`;
   document.getElementById('ds-sub-val').textContent = `BEST  ${highScore}`;
   document.getElementById('dead-screen').classList.add('show');
@@ -360,8 +468,8 @@ function applyPowerItem(item){
   if(item.type==='dj'){ up.doubleJump=1; }
   else if(item.type==='sword'){ up.attackPower=Math.min(up.attackPower+1,3); }
   else if(item.type==='shield'){ pl.shieldHp=1; }
-  // HUD 알림용 타이머 저장
   lastPickup = { label:item.label, color:item.color, timer:180 };
+  sfxPowerup();
 }
 
 // 마지막 픽업 알림
@@ -378,6 +486,7 @@ function spawnBoss(){
     rushTimer:0, rushing:false,
   };
   bossActive=true; state='boss'; gameSpeed=3;
+  startBGM(BGM_BOSS); sfxBossWarning();
 }
 
 function spawnPfx(x,y,color,n){
@@ -439,6 +548,7 @@ function update(){
     if(sword.phase==='return' && sword.x<=pl.x+PW){
       sword=null;
       pl.attacking=false;
+      sfxSwordReturn();
     }
 
     if(sword){
@@ -452,7 +562,8 @@ function update(){
           ob.hp-=up.attackPower;
           sword.hitIds.add(ob.id);
           spawnPfx(ob.x+ob.w/2,oy+oh/2,ob.color,5);
-          if(ob.hp<=0){ ob.dead=true; score+=50; spawnPfx(ob.x+ob.w/2,oy+oh/2,'#fde68a',12); }
+          sfxHitEnemy();
+          if(ob.hp<=0){ ob.dead=true; score+=50; spawnPfx(ob.x+ob.w/2,oy+oh/2,'#fde68a',12); sfxEnemyDie(); }
         }
       });
       // 검 vs 보스
@@ -462,6 +573,7 @@ function update(){
           boss.hp-=up.attackPower; boss.hitFlash=8;
           sword.hitIds.add('boss_'+Math.floor(frame/4));
           spawnPfx(boss.x+boss.w/2,boss.y+boss.h/2,'#ef4444',7);
+          sfxBossHit();
         }
       }
       // 검 vs 보스 탄환 (튕겨냄)
@@ -526,6 +638,7 @@ function update(){
         boss=null; bossActive=false; bossBullets=[];
         nextBossScore=score+2000; state='playing';
         gameSpeed=Math.min(5+Math.floor(score/250)*0.5,13);
+        sfxBossDie(); startBGM(BGM_PLAY);
       }
     }
   }
@@ -545,7 +658,8 @@ function update(){
 
 function hitPlayer(){
   if(pl.invincible>0) return;
-  if(pl.shieldHp>0){ pl.shieldHp--; pl.invincible=70; spawnPfx(pl.x+PW/2,pl.y+PH/2,'#38bdf8',18); return; }
+  if(pl.shieldHp>0){ pl.shieldHp--; pl.invincible=70; spawnPfx(pl.x+PW/2,pl.y+PH/2,'#38bdf8',18); sfxPlayerHurt(); return; }
+  sfxPlayerHurt();
   gameOver();
 }
 
@@ -1057,6 +1171,9 @@ function resize(){
 }
 window.addEventListener('resize',resize);
 resize();
+
+// 뮤트 버튼 초기 상태
+document.getElementById('mute-btn').textContent = muteAll ? '🔇' : '🔊';
 
 loop();
 </script>
