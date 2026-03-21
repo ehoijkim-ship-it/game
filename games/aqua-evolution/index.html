@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>수중생물 진화 강화 - GamePortal</title>
-    <meta name="description" content="물방울에서 용신까지! 성공과 실패 확률이 있는 강화 클릭 게임. 조각을 모아 아이템을 교환하고 최강의 수중생물로 진화시키세요.">
+    <title>수중생물 진화게임 - GamePortal</title>
+    <meta name="description" content="물방울에서 용신까지! 성공과 실패 확률이 있는 진화 클릭 게임. 조각을 모아 아이템을 교환하고 최강의 수중생물로 진화시키세요.">
     <link rel="canonical" href="https://game-vhy.pages.dev/games/aqua-evolution/index.html">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="수중생물 진화 강화 - GamePortal">
-    <meta property="og:description" content="물방울에서 용신까지! 성공/실패 확률이 있는 강화 클릭 게임. 최강의 수중생물로 진화시키세요.">
+    <meta property="og:title" content="수중생물 진화게임 - GamePortal">
+    <meta property="og:description" content="물방울에서 용신까지! 성공/실패 확률이 있는 진화 클릭 게임. 최강의 수중생물로 진화시키세요.">
     <meta property="og:url" content="https://game-vhy.pages.dev/games/aqua-evolution/index.html">
     <meta property="og:locale" content="ko_KR">
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "VideoGame",
-      "name": "수중생물 진화 강화",
-      "description": "물방울에서 용신까지! 성공과 실패 확률이 있는 강화 클릭 게임. 조각을 모아 아이템을 교환하고 최강의 수중생물로 진화시키세요.",
+      "name": "수중생물 진화게임",
+      "description": "물방울에서 용신까지! 성공과 실패 확률이 있는 진화 클릭 게임. 조각을 모아 아이템을 교환하고 최강의 수중생물로 진화시키세요.",
       "url": "https://game-vhy.pages.dev/games/aqua-evolution/index.html",
       "genre": ["Clicker", "Casual"],
       "gamePlatform": "Web Browser",
@@ -36,6 +36,14 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-99PTTPMZ02');
+    </script>
+    <!-- Microsoft Clarity -->
+    <script type="text/javascript">
+      (function(c,l,a,r,i,t,y){
+          c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", "vz4x98danc");
     </script>
     <meta name="google-adsense-account" content="ca-pub-4257571340496419">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4257571340496419" crossorigin="anonymous"></script>
@@ -476,7 +484,7 @@
 
             <div class="upgrade-info">
                 <div class="info-box">
-                    <span class="ib-label">강화 비용</span>
+                    <span class="ib-label">진화 비용</span>
                     <span class="ib-val ib-gold" id="cost-val">100G</span>
                 </div>
                 <div class="info-box">
@@ -496,7 +504,7 @@
             <div class="quick-items" id="quick-items"></div>
 
             <div class="btn-row">
-                <button class="upgrade-btn" id="upgrade-btn" onclick="doUpgrade()">⚡ 강화하기</button>
+                <button class="upgrade-btn" id="upgrade-btn" onclick="doUpgrade()">⚡ 진화하기</button>
                 <button class="sell-btn"    id="sell-btn"    onclick="doSell()">💰 판매</button>
             </div>
         </div>
@@ -558,7 +566,7 @@
     <div class="clear-box">
         <div class="clear-emoji">👑</div>
         <div class="clear-title">용신 달성!</div>
-        <div class="clear-sub">수많은 강화와 소멸을 딛고<br>전설의 용신이 탄생했습니다!</div>
+        <div class="clear-sub">수많은 진화와 소멸을 딛고<br>전설의 용신이 탄생했습니다!</div>
         <button class="clear-restart-btn" onclick="restartGame()">다시 시작</button>
     </div>
 </div>
@@ -760,7 +768,7 @@ function updateBtns() {
         els.upBtn.textContent = '🔱 용신 달성!';
         els.upBtn.classList.add('clear');
     } else {
-        els.upBtn.textContent = canAfford ? '⚡ 강화하기' : '💰 골드 부족';
+        els.upBtn.textContent = canAfford ? '⚡ 진화하기' : '💰 골드 부족';
         els.upBtn.classList.remove('clear');
     }
 
@@ -989,7 +997,7 @@ function useItem(type) {
     state.inventory[type]--;
     state[type] = true;
     const msgs = {
-        herb:   '🍀 용의 물풀 사용! 다음 강화 성공률 +20%',
+        herb:   '🍀 용의 물풀 사용! 다음 진화 성공률 +20%',
         shield: '🛡️ 심해의 가호 사용! 다음 실패 시 소멸 방지',
     };
     showToast(msgs[type]);
