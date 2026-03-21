@@ -25,6 +25,7 @@
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4257571340496419" crossorigin="anonymous"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
 body {
   background: #020209;
   display: flex;
@@ -32,78 +33,124 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 8px;
-  overflow-x: hidden;
-  overflow-y: auto;
+  padding: 6px;
+  overflow: hidden;
+  gap: 6px;
 }
 #wrapper {
   position: relative;
-  width: 100%;
-  max-width: 800px;
+  flex-shrink: 0;
 }
 canvas {
   display: block;
-  width: 100%;
-  height: auto;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   border: 2px solid #1e1b4b;
-  box-shadow: 0 0 40px rgba(168,85,247,0.2), 0 0 80px rgba(168,85,247,0.07);
+  box-shadow: 0 0 48px rgba(168,85,247,0.25), 0 0 96px rgba(168,85,247,0.08);
   touch-action: none;
 }
-#wrapper::after {
-  content: '';
+
+/* ── GAME OVER HTML 오버레이 ── */
+#dead-screen {
+  display: none;
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 3px);
-  pointer-events: none;
-  z-index: 10;
+  z-index: 30;
+  background: rgba(0,0,0,0.86);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  text-align: center;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
 }
-#info {
-  margin-top: 8px;
+#dead-screen.show { display: flex; }
+#dead-screen .ds-title {
+  color: #f87171;
+  font-size: clamp(18px, 4vw, 42px);
+  text-shadow: 0 0 24px #ef4444, 0 0 48px #7f1d1d;
+  margin-bottom: 14px;
+  letter-spacing: 0.05em;
+}
+#dead-screen .ds-score {
+  color: #f1f5f9;
+  font-size: clamp(11px, 2.2vw, 22px);
+  margin-bottom: 8px;
+}
+#dead-screen .ds-sub {
+  color: #fbbf24;
+  font-size: clamp(8px, 1.5vw, 15px);
+  margin-bottom: 20px;
+  opacity: 0.9;
+}
+#dead-screen .ds-btn {
+  background: rgba(168,85,247,0.2);
+  border: 2px solid #7c3aed;
+  color: #c084fc;
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
-  color: #334155;
+  font-size: clamp(8px, 1.6vw, 14px);
+  padding: 10px 24px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: background 0.15s;
+  margin-top: 4px;
+}
+#dead-screen .ds-btn:hover, #dead-screen .ds-btn:active {
+  background: rgba(168,85,247,0.45);
+  border-color: #a855f7;
+  color: #e9d5ff;
+}
+
+#info {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(6px, 1vw, 8px);
+  color: #2d3748;
   text-align: center;
   letter-spacing: 1px;
+  flex-shrink: 0;
 }
-/* ── 터치/마우스 조작 버튼 ── */
+/* ── 조작 버튼 ── */
 #ctrl-bar {
   display: flex;
   gap: 8px;
-  margin-top: 8px;
+  flex-shrink: 0;
   width: 100%;
-  max-width: 800px;
 }
 .ctrl-btn {
   flex: 1;
-  padding: 16px 8px;
+  padding: clamp(10px,2vh,18px) 8px;
   background: rgba(168,85,247,0.1);
   border: 2px solid rgba(168,85,247,0.35);
   color: #a78bfa;
   font-family: 'Press Start 2P', monospace;
-  font-size: 10px;
-  letter-spacing: 0.05em;
+  font-size: clamp(9px, 1.4vw, 13px);
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
-  transition: background 0.1s, border-color 0.1s;
+  transition: background 0.1s;
   border-radius: 2px;
 }
 .ctrl-btn:active, .ctrl-btn.pressed {
-  background: rgba(168,85,247,0.3);
+  background: rgba(168,85,247,0.35);
   border-color: #a855f7;
   color: #e9d5ff;
 }
-#btn-jump  { border-color: rgba(99,179,237,0.4); color: #90cdf4; }
-#btn-jump:active, #btn-jump.pressed { background: rgba(99,179,237,0.2); border-color: #63b3ed; }
+#btn-jump { border-color: rgba(99,179,237,0.45); color: #90cdf4; }
+#btn-jump:active, #btn-jump.pressed { background: rgba(99,179,237,0.25); border-color: #63b3ed; }
 </style>
 </head>
 <body>
 <a href="../../index.html" style="position:fixed;top:8px;left:8px;z-index:9999;background:rgba(5,2,15,0.82);border:1px solid #3b1f6a;color:#a78bfa;font-family:'Press Start 2P',monospace;font-size:9px;padding:5px 9px;text-decoration:none;white-space:nowrap;letter-spacing:0.05em;transition:background 0.15s;" onmouseover="this.style.background='rgba(30,10,60,0.95)'" onmouseout="this.style.background='rgba(5,2,15,0.82)'">⌂ HOME</a>
 <div id="wrapper">
   <canvas id="game" width="800" height="320"></canvas>
+  <div id="dead-screen">
+    <div class="ds-title">GAME OVER</div>
+    <div class="ds-score" id="ds-score-val"></div>
+    <div class="ds-sub" id="ds-sub-val"></div>
+    <button class="ds-btn" id="ds-shop-btn">⚔ UPGRADE SHOP</button>
+    <button class="ds-btn" id="ds-retry-btn" style="margin-top:8px">▶ PLAY AGAIN</button>
+  </div>
 </div>
 <div id="info">SPACE / ↑ : JUMP &nbsp;·&nbsp; Z / X : 검 투척 &nbsp;·&nbsp; COLLECT COINS &nbsp;·&nbsp; DEFEAT BOSSES</div>
 <div id="ctrl-bar">
@@ -197,7 +244,7 @@ document.addEventListener('keydown',e=>{
   if(keys[e.code]) return;
   keys[e.code]=true;
   if(state==='menu'&&(e.code==='Space'||e.code==='Enter')) startGame();
-  else if(state==='dead'&&(e.code==='Space'||e.code==='Enter')){ state='shop'; frame=0; }
+  else if(state==='dead'&&(e.code==='Space'||e.code==='Enter')){ startGame(); }
   else if(state==='shop'&&(e.code==='Escape'||e.code==='KeyQ')){ state='menu'; frame=0; }
   else if(state==='playing'||state==='boss'){
     if(e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW') doJump();
@@ -212,7 +259,6 @@ canvas.addEventListener('touchstart',e=>{
   const cx=(e.touches[0].clientX-rect.left)*(W/rect.width);
   const cy=(e.touches[0].clientY-rect.top)*(H/rect.height);
   if(state==='menu'){ startGame(); return; }
-  if(state==='dead'){ state='shop'; frame=0; return; }
   if(state==='shop'){ handleShopClick(cx,cy); return; }
   if(cx>W*0.6) doAttack(); else doJump();
 },{passive:false});
@@ -222,7 +268,6 @@ canvas.addEventListener('click',e=>{
   const cx=(e.clientX-rect.left)*(W/rect.width);
   const cy=(e.clientY-rect.top)*(H/rect.height);
   if(state==='menu'){ startGame(); return; }
-  if(state==='dead'){ state='shop'; frame=0; return; }
   if(state==='shop'){ handleShopClick(cx,cy); return; }
 });
 
@@ -272,6 +317,7 @@ function doAttack(){
 
 // ── GAME FLOW ─────────────────────────────────────
 function startGame(){
+  document.getElementById('dead-screen').classList.remove('show');
   state='playing'; score=0; frame=0; gameSpeed=5;
   obstacles=[]; coinItems=[]; particles=[]; bossBullets=[]; boss=null;
   bossActive=false; nextBossScore=2000; bossCount=0;
@@ -287,6 +333,9 @@ function gameOver(){
   if(score>highScore){ highScore=score; localStorage.setItem('sk_hs',highScore); }
   localStorage.setItem('sk_coins',coins);
   spawnPfx(pl.x+PW/2,pl.y+PH/2,'#ef4444',25);
+  document.getElementById('ds-score-val').textContent = `SCORE  ${score}`;
+  document.getElementById('ds-sub-val').textContent = `COINS ${coins}   BEST ${highScore}`;
+  document.getElementById('dead-screen').classList.add('show');
 }
 
 // ── SPAWN ─────────────────────────────────────────
@@ -879,51 +928,8 @@ function drawMenu(){
 }
 
 function drawDead(){
-  // 배경 어둡게
-  ctx.fillStyle='rgba(0,0,0,0.72)'; ctx.fillRect(0,0,W,H);
-
-  // 패널
-  const pw=400, ph=196;
-  const bx=W/2-pw/2, by=H/2-ph/2;
-  ctx.fillStyle='rgba(10,5,20,0.97)'; ctx.fillRect(bx,by,pw,ph);
-  ctx.strokeStyle='#7c3aed'; ctx.lineWidth=2; ctx.strokeRect(bx,by,pw,ph);
-  // 패널 상단 강조선
-  ctx.strokeStyle='#ef4444'; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx+pw,by); ctx.stroke();
-
-  // GAME OVER 타이틀
-  ctx.save();
-  ctx.shadowColor='#ef4444'; ctx.shadowBlur=18;
-  ctx.fillStyle='#f87171'; ctx.font=`${P*5}px 'Press Start 2P',monospace`;
-  ctx.textAlign='center'; ctx.fillText('GAME OVER',W/2,by+42);
-  ctx.restore();
-
-  // 구분선
-  ctx.strokeStyle='rgba(239,68,68,0.25)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(bx+20,by+54); ctx.lineTo(bx+pw-20,by+54); ctx.stroke();
-
-  // 점수
-  ctx.fillStyle='#f1f5f9'; ctx.font=`${P*3}px 'Press Start 2P',monospace`;
-  ctx.textAlign='center'; ctx.fillText(`SCORE  ${score}`,W/2,by+82);
-
-  // 코인 / 최고점
-  ctx.fillStyle='#fbbf24'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
-  ctx.fillText(`COINS  ${coins}`,W/2,by+108);
-  ctx.fillStyle='#94a3b8'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
-  ctx.fillText(`BEST  ${highScore}`,W/2,by+130);
-
-  // 구분선2
-  ctx.strokeStyle='rgba(168,85,247,0.2)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(bx+20,by+144); ctx.lineTo(bx+pw-20,by+144); ctx.stroke();
-
-  // 계속하기 안내 (깜빡임)
-  if(Math.floor(frame/22)%2){
-    ctx.fillStyle='#c084fc'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
-    ctx.textAlign='center'; ctx.fillText('SPACE / TAP  →  SHOP',W/2,by+168);
-  } else {
-    ctx.fillStyle='#4c1d95'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
-    ctx.textAlign='center'; ctx.fillText('SPACE / TAP  →  SHOP',W/2,by+168);
-  }
+  // HTML 오버레이가 처리하므로 캔버스는 배경만 어둡게
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(0,0,W,H);
 }
 
 function drawShop(){
@@ -1005,6 +1011,32 @@ function loop(){
 
   requestAnimationFrame(loop);
 }
+
+// ── DEAD-SCREEN 버튼 ──────────────────────────────
+document.getElementById('ds-shop-btn').addEventListener('click',()=>{
+  document.getElementById('dead-screen').classList.remove('show');
+  state='shop'; frame=0;
+});
+document.getElementById('ds-retry-btn').addEventListener('click',()=>{
+  startGame();
+});
+
+// ── RESPONSIVE RESIZE ─────────────────────────────
+function resize(){
+  const maxW=800, maxH=320;
+  const ctrlH=document.getElementById('ctrl-bar').offsetHeight||60;
+  const infoH=document.getElementById('info').offsetHeight||20;
+  const avW=window.innerWidth-12;
+  const avH=window.innerHeight-ctrlH-infoH-28;
+  const scale=Math.min(avW/maxW, avH/maxH, 1);
+  const cw=Math.round(maxW*scale), ch=Math.round(maxH*scale);
+  canvas.style.width=cw+'px';
+  canvas.style.height=ch+'px';
+  document.getElementById('wrapper').style.width=cw+'px';
+  document.getElementById('ctrl-bar').style.width=cw+'px';
+}
+window.addEventListener('resize',resize);
+resize();
 
 loop();
 </script>
