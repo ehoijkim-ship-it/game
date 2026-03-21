@@ -14,19 +14,30 @@
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "VideoGame",
-  "name": "백수 구출 대작전",
-  "description": "취준생의 하루를 관리하며 취업 성공을 목표로 하는 픽셀 시뮬레이션 게임. 체력, 의욕, 스펙을 조절하며 백수 탈출에 도전하세요.",
-  "url": "https://game-vhy.pages.dev/games/baksoo-game/index.html",
-  "genre": ["Simulation", "Casual"],
-  "gamePlatform": "Web Browser",
-  "inLanguage": "ko",
-  "isAccessibleForFree": true,
-  "publisher": {
-    "@type": "Organization",
-    "name": "GamePortal",
-    "url": "https://game-vhy.pages.dev/"
-  }
+  "@graph": [
+    {
+      "@type": "VideoGame",
+      "name": "백수 구출 대작전",
+      "description": "취준생의 하루를 관리하며 취업 성공을 목표로 하는 픽셀 시뮬레이션 게임. 체력, 의욕, 스펙을 조절하며 백수 탈출에 도전하세요.",
+      "url": "https://game-vhy.pages.dev/games/baksoo-game/index.html",
+      "genre": ["Simulation", "Casual"],
+      "gamePlatform": "Web Browser",
+      "inLanguage": "ko",
+      "isAccessibleForFree": true,
+      "publisher": {
+        "@type": "Organization",
+        "name": "GamePortal",
+        "url": "https://game-vhy.pages.dev/"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "홈", "item": "https://game-vhy.pages.dev/"},
+        {"@type": "ListItem", "position": 2, "name": "백수 구출 대작전", "item": "https://game-vhy.pages.dev/games/baksoo-game/index.html"}
+      ]
+    }
+  ]
 }
 </script>
 <!-- Google tag (gtag.js) -->

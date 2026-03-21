@@ -5,7 +5,14 @@
       "Bash(python:*)",
       "Bash(where python:*)",
       "Bash(node:*)",
-      "Bash(grep -E \"\\\\.\\(html|css|js|jpg|png\\)$\")"
+      "Bash(grep -E \"\\\\.\\(html|css|js|jpg|png\\)$\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:adsense-ko.googleblog.com)",
+      "Bash(git restore:*)",
+      "WebFetch(domain:developers.google.com)",
+      "Bash(cd:*)"
     ]
   }
 }
