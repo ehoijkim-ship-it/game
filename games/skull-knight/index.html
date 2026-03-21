@@ -32,38 +32,83 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  overflow: hidden;
+  padding: 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
-#wrapper { position: relative; }
+#wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+}
 canvas {
   display: block;
+  width: 100%;
+  height: auto;
   image-rendering: pixelated;
-  border: 2px solid #0f172a;
-  box-shadow: 0 0 60px rgba(168,85,247,0.15), 0 0 120px rgba(168,85,247,0.05);
+  image-rendering: crisp-edges;
+  border: 2px solid #1e1b4b;
+  box-shadow: 0 0 40px rgba(168,85,247,0.2), 0 0 80px rgba(168,85,247,0.07);
+  touch-action: none;
 }
 #wrapper::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.04) 0px, rgba(0,0,0,0.04) 1px, transparent 1px, transparent 3px);
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 3px);
   pointer-events: none;
   z-index: 10;
 }
 #info {
-  margin-top: 12px;
+  margin-top: 8px;
   font-family: 'Press Start 2P', monospace;
   font-size: 7px;
   color: #334155;
   text-align: center;
   letter-spacing: 1px;
 }
+/* ── 터치/마우스 조작 버튼 ── */
+#ctrl-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  width: 100%;
+  max-width: 800px;
+}
+.ctrl-btn {
+  flex: 1;
+  padding: 16px 8px;
+  background: rgba(168,85,247,0.1);
+  border: 2px solid rgba(168,85,247,0.35);
+  color: #a78bfa;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: background 0.1s, border-color 0.1s;
+  border-radius: 2px;
+}
+.ctrl-btn:active, .ctrl-btn.pressed {
+  background: rgba(168,85,247,0.3);
+  border-color: #a855f7;
+  color: #e9d5ff;
+}
+#btn-jump  { border-color: rgba(99,179,237,0.4); color: #90cdf4; }
+#btn-jump:active, #btn-jump.pressed { background: rgba(99,179,237,0.2); border-color: #63b3ed; }
 </style>
 </head>
 <body>
 <div id="wrapper">
   <canvas id="game" width="800" height="320"></canvas>
 </div>
-<div id="info">SPACE / ↑ : JUMP &nbsp;·&nbsp; Z / X : 검 투척 (부메랑) &nbsp;·&nbsp; COLLECT COINS &nbsp;·&nbsp; DEFEAT BOSSES</div>
+<div id="info">SPACE / ↑ : JUMP &nbsp;·&nbsp; Z / X : 검 투척 &nbsp;·&nbsp; COLLECT COINS &nbsp;·&nbsp; DEFEAT BOSSES</div>
+<div id="ctrl-bar">
+  <button class="ctrl-btn" id="btn-jump">⬆ JUMP</button>
+  <button class="ctrl-btn" id="btn-attack">⚔ ATTACK</button>
+</div>
 
 <script>
 const canvas = document.getElementById('game');
@@ -172,10 +217,30 @@ canvas.addEventListener('touchstart',e=>{
 },{passive:false});
 
 canvas.addEventListener('click',e=>{
-  if(state!=='shop') return;
   const rect=canvas.getBoundingClientRect();
-  handleShopClick((e.clientX-rect.left)*(W/rect.width),(e.clientY-rect.top)*(H/rect.height));
+  const cx=(e.clientX-rect.left)*(W/rect.width);
+  const cy=(e.clientY-rect.top)*(H/rect.height);
+  if(state==='menu'){ startGame(); return; }
+  if(state==='dead'){ state='shop'; frame=0; return; }
+  if(state==='shop'){ handleShopClick(cx,cy); return; }
 });
+
+// ── 조작 버튼 (터치 + 마우스) ──────────────────────
+(function(){
+  function addBtn(id, fn){
+    const el=document.getElementById(id);
+    if(!el) return;
+    const press=()=>{ el.classList.add('pressed'); if(state==='playing'||state==='boss') fn(); };
+    const release=()=>{ el.classList.remove('pressed'); };
+    el.addEventListener('touchstart',e=>{ e.preventDefault(); press(); },{passive:false});
+    el.addEventListener('touchend',  e=>{ e.preventDefault(); release(); },{passive:false});
+    el.addEventListener('mousedown', e=>{ e.preventDefault(); press(); });
+    el.addEventListener('mouseup',   release);
+    el.addEventListener('mouseleave',release);
+  }
+  addBtn('btn-jump',   doJump);
+  addBtn('btn-attack', doAttack);
+})();
 
 // ── ACTIONS ───────────────────────────────────────
 function doJump(){
@@ -802,32 +867,61 @@ function drawMenu(){
   ctx.textAlign='center'; ctx.fillText('SKULL',W/2,H/2-58);
   ctx.fillStyle='#9ca3af'; ctx.fillText('KNIGHT',W/2,H/2-8);
   ctx.restore();
-  ctx.fillStyle='#475569'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
-  ctx.textAlign='center'; ctx.fillText('JUMP · SWORD · COLLECT · SURVIVE BOSS',W/2,H/2+28);
+  ctx.fillStyle='#475569'; ctx.font=`${P*1.8}px 'Press Start 2P',monospace`;
+  ctx.textAlign='center'; ctx.fillText('JUMP · SWORD · COLLECT · DEFEAT BOSS',W/2,H/2+28);
   if(Math.floor(frame/28)%2){
     ctx.fillStyle='#e2e8f0'; ctx.font=`${P*2.5}px 'Press Start 2P',monospace`;
-    ctx.fillText('PRESS SPACE TO START',W/2,H/2+60);
+    ctx.fillText('SPACE / TAP  TO  START',W/2,H/2+58);
   }
   ctx.fillStyle='#fbbf24'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
-  ctx.fillText(`BEST: ${highScore}   COINS: ${coins}`,W/2,H/2+90);
+  ctx.fillText(`BEST ${highScore}   COINS ${coins}`,W/2,H/2+88);
 }
 
 function drawDead(){
-  ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(0,0,W,H);
+  // 배경 어둡게
+  ctx.fillStyle='rgba(0,0,0,0.72)'; ctx.fillRect(0,0,W,H);
+
+  // 패널
+  const pw=400, ph=196;
+  const bx=W/2-pw/2, by=H/2-ph/2;
+  ctx.fillStyle='rgba(10,5,20,0.97)'; ctx.fillRect(bx,by,pw,ph);
+  ctx.strokeStyle='#7c3aed'; ctx.lineWidth=2; ctx.strokeRect(bx,by,pw,ph);
+  // 패널 상단 강조선
+  ctx.strokeStyle='#ef4444'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx+pw,by); ctx.stroke();
+
+  // GAME OVER 타이틀
   ctx.save();
-  ctx.shadowColor='#ef4444'; ctx.shadowBlur=20;
-  ctx.fillStyle='#ef4444'; ctx.font=`${P*5}px 'Press Start 2P',monospace`;
-  ctx.textAlign='center'; ctx.fillText('GAME OVER',W/2,H/2-50);
+  ctx.shadowColor='#ef4444'; ctx.shadowBlur=18;
+  ctx.fillStyle='#f87171'; ctx.font=`${P*5}px 'Press Start 2P',monospace`;
+  ctx.textAlign='center'; ctx.fillText('GAME OVER',W/2,by+42);
   ctx.restore();
-  ctx.fillStyle='#e2e8f0'; ctx.font=`${P*3}px 'Press Start 2P',monospace`;
-  ctx.textAlign='center'; ctx.fillText(`SCORE: ${score}`,W/2,H/2-5);
-  ctx.fillStyle='#fbbf24'; ctx.font=`${P*2.5}px 'Press Start 2P',monospace`;
-  ctx.fillText(`COINS: ${coins}`,W/2,H/2+25);
-  ctx.fillStyle='#64748b'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
-  ctx.fillText(`BEST: ${highScore}`,W/2,H/2+50);
-  if(Math.floor(frame/26)%2){
-    ctx.fillStyle='#a855f7'; ctx.font=`${P*2.5}px 'Press Start 2P',monospace`;
-    ctx.fillText('PRESS SPACE → UPGRADE SHOP',W/2,H/2+82);
+
+  // 구분선
+  ctx.strokeStyle='rgba(239,68,68,0.25)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(bx+20,by+54); ctx.lineTo(bx+pw-20,by+54); ctx.stroke();
+
+  // 점수
+  ctx.fillStyle='#f1f5f9'; ctx.font=`${P*3}px 'Press Start 2P',monospace`;
+  ctx.textAlign='center'; ctx.fillText(`SCORE  ${score}`,W/2,by+82);
+
+  // 코인 / 최고점
+  ctx.fillStyle='#fbbf24'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
+  ctx.fillText(`COINS  ${coins}`,W/2,by+108);
+  ctx.fillStyle='#94a3b8'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
+  ctx.fillText(`BEST  ${highScore}`,W/2,by+130);
+
+  // 구분선2
+  ctx.strokeStyle='rgba(168,85,247,0.2)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(bx+20,by+144); ctx.lineTo(bx+pw-20,by+144); ctx.stroke();
+
+  // 계속하기 안내 (깜빡임)
+  if(Math.floor(frame/22)%2){
+    ctx.fillStyle='#c084fc'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
+    ctx.textAlign='center'; ctx.fillText('SPACE / TAP  →  SHOP',W/2,by+168);
+  } else {
+    ctx.fillStyle='#4c1d95'; ctx.font=`${P*2}px 'Press Start 2P',monospace`;
+    ctx.textAlign='center'; ctx.fillText('SPACE / TAP  →  SHOP',W/2,by+168);
   }
 }
 
