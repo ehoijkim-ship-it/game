@@ -12,7 +12,8 @@
       "WebFetch(domain:adsense-ko.googleblog.com)",
       "Bash(git restore:*)",
       "WebFetch(domain:developers.google.com)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "WebFetch(domain:searchadvisor.naver.com)"
     ]
   }
 }
