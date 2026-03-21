@@ -577,7 +577,7 @@ body{background:#080810;color:#c0d0e0;font-family:'DotGothic16','Courier New',mo
       </div>
 
       <div id="speech"></div>
-      <div id="choice-popup">
+      <div id="choice-popup" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
         <h3 id="choice-title"></h3>
         <div id="choice-buttons"></div>
         <button class="choice-btn choice-cancel" onclick="closeChoice()">[ 취소 ]</button>
@@ -872,7 +872,10 @@ function catAITick(){
     if(dist>4){
       catX+=dx/dist*0.6; catY+=dy/dist*0.6;
       el.classList.add('walking'); el.classList.remove('sleeping');
-      el.style.transform=dx<0?'scaleX(-1)':'scaleX(1)';
+      const flip=dx<0;
+      el.style.transform=flip?'scaleX(-1)':'scaleX(1)';
+      const hintEl=document.getElementById('hint-cat');
+      if(hintEl) hintEl.style.transform=flip?'translateX(-50%) scaleX(-1)':'translateX(-50%) scaleX(1)';
     } else {
       catState='idle'; catWait=2500+Math.random()*7000;
       el.classList.remove('walking');
@@ -1922,6 +1925,8 @@ window.addEventListener('resize', scaleGame);
   }
 
   room.addEventListener('mousedown', e => {
+    // 행동창 또는 아리(고양이) 클릭 시 room 이벤트 무시
+    if (e.target.closest('#choice-popup') || e.target.closest('#cat')) return;
     const { x: px, y: py } = getRoomPos(e);
     // 오브젝트 클릭 감지 → 자동 이동 후 상호작용
     const objId = findClickedObj(px, py);
