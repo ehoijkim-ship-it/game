@@ -91,8 +91,15 @@
     <!-- 사이트 소개 히어로 섹션 -->
     <section class="hero container">
         <div class="hero-text">
-            <h2 class="hero-title">설치 없이, 지금 바로 플레이</h2>
-            <p class="hero-desc">GamePortal은 회원가입 없이 브라우저에서 바로 즐기는 <strong>무료 웹게임 플랫폼</strong>입니다. 직접 제작한 오리지널 게임을 PC와 모바일 모두에서 즐겨보세요.</p>
+            <div class="hero-body">
+                <h2 class="hero-title">설치 없이,<br>지금 바로 플레이</h2>
+                <p class="hero-desc">GamePortal은 회원가입 없이 브라우저에서 바로 즐기는 <strong>무료 웹게임 플랫폼</strong>입니다. 직접 제작한 오리지널 게임을 PC와 모바일 모두에서 즐겨보세요.</p>
+                <a href="#games" class="hero-btn">게임 목록 보기 →</a>
+            </div>
+            <div class="hero-badge">
+                <div class="num">🎮 3</div>
+                <div class="label">무료 게임</div>
+            </div>
         </div>
     </section>
 
@@ -109,7 +116,7 @@
             </div>
 
             <div class="sidebar-section">
-                <h3 class="sidebar-title">ADVERTISEMENT</h3>
+                <h3 class="sidebar-title">광고</h3>
                 <ins class="adsbygoogle"
                      style="display:block"
                      data-ad-client="ca-pub-4257571340496419"
@@ -121,7 +128,7 @@
         </aside>
 
         <section class="game-section">
-            <h2 class="section-title">최신 게임 목록</h2>
+            <h2 class="section-title" id="games">최신 게임 목록</h2>
             <div class="game-grid">
                 <!-- Game Card 1: 백수 구출 대작전 -->
                 <a href="games/baksoo-game/index.html" class="game-card">
@@ -133,7 +140,10 @@
                     <div class="game-info">
                         <h3 class="game-title">백수 구출 대작전</h3>
                         <p class="game-desc">취준생의 하루를 관리하며 취업 성공을 목표로 하는 픽셀 시뮬레이션 게임. 체력, 의욕, 스펙을 조절하며 백수 탈출에 도전하세요!</p>
-                        <span class="game-category">Simulation</span>
+                        <div class="game-card-footer">
+                            <span class="game-category">Simulation</span>
+                            <span class="game-play-btn">지금 플레이 →</span>
+                        </div>
                     </div>
                 </a>
 
@@ -145,7 +155,10 @@
                     <div class="game-info">
                         <h3 class="game-title">클래식 뱀 게임</h3>
                         <p class="game-desc">누구나 아는 뱀 게임의 정석! 방향키로 뱀을 조종해 먹이를 먹고 몸집을 키우세요. 자신의 몸과 벽을 피하며 최고 점수에 도전하세요.</p>
-                        <span class="game-category">Arcade</span>
+                        <div class="game-card-footer">
+                            <span class="game-category">Arcade</span>
+                            <span class="game-play-btn">지금 플레이 →</span>
+                        </div>
                     </div>
                 </a>
 
@@ -157,7 +170,10 @@
                     <div class="game-info">
                         <h3 class="game-title">수중생물 진화 강화</h3>
                         <p class="game-desc">물방울에서 용신까지! 성공과 실패 확률이 있는 강화 클릭 게임. 조각을 모아 아이템을 교환하고 최강의 수중생물로 진화시키세요.</p>
-                        <span class="game-category">Clicker</span>
+                        <div class="game-card-footer">
+                            <span class="game-category">Clicker</span>
+                            <span class="game-play-btn">지금 플레이 →</span>
+                        </div>
                     </div>
                 </a>
             </div>
