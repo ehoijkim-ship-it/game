@@ -26,8 +26,11 @@ body{font-family:'Press Start 2P',monospace;background:var(--bg);color:#e2e8f0;h
 #room-ceiling{position:absolute;top:0;left:0;right:0;height:8px;z-index:5;transition:background 0.8s;}
 #room-wall{position:absolute;top:0;left:0;right:0;bottom:36%;transition:background 0.8s;}
 #room-baseboard{position:absolute;bottom:36%;left:0;right:0;height:6px;z-index:5;transition:background 0.8s;}
+#room-window{position:absolute;top:10%;left:18%;width:90px;height:70px;border:6px solid rgba(0,0,0,0.45);border-radius:2px;z-index:6;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.5),inset 0 0 0 2px rgba(255,255,255,0.08);}
+#win-scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:36px;transition:background 0.8s;}
+.win-frame-h{position:absolute;top:50%;left:0;right:0;height:4px;background:rgba(0,0,0,0.35);transform:translateY(-50%);z-index:1;}
+.win-frame-v{position:absolute;left:50%;top:0;bottom:0;width:4px;background:rgba(0,0,0,0.35);transform:translateX(-50%);z-index:1;}
 #room-floor{position:absolute;bottom:0;left:0;right:0;height:36%;transition:background 0.8s;}
-#room-window{position:absolute;top:8%;right:20%;width:70px;height:54px;border:5px solid rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-size:26px;border-radius:3px;z-index:6;transition:all 0.5s;box-shadow:inset 0 0 18px rgba(255,255,255,0.12),0 3px 8px rgba(0,0,0,0.5);}
 #char{position:absolute;bottom:36%;left:50%;transform:translate(-50%,52%);font-size:54px;z-index:5;animation:breathe 4s ease-in-out infinite;cursor:pointer;}
 @keyframes breathe{0%,100%{transform:translate(-50%,52%) scale(1);}50%{transform:translate(-50%,52%) scale(1.07);}}
 #obj-grid{position:absolute;inset:0;z-index:3;pointer-events:none;}
@@ -136,9 +139,9 @@ body{font-family:'Press Start 2P',monospace;background:var(--bg);color:#e2e8f0;h
 <div id="room">
   <div id="room-ceiling"></div>
   <div id="room-wall"></div>
+  <div id="room-window"><div id="win-scene"></div><div class="win-frame-h"></div><div class="win-frame-v"></div></div>
   <div id="room-baseboard"></div>
   <div id="room-floor"></div>
-  <div id="room-window">🧱</div>
   <div id="buff-bar">✨ 버프 중!</div>
   <div id="char" onclick="clickChar()">🛌</div>
   <div class="click-hint" id="click-hint">TAP!</div>
@@ -307,46 +310,56 @@ const EVENTS=[
 // ROOM VISUAL STYLES (wall/floor CSS per stage)
 // ═══════════════════════════════
 const ROOM_CSS=[
-  {// 0: 고시원 — 낡은 줄무늬 벽지, 어두운 원목 마루
+  {// 0: 고시원
     wall:'repeating-linear-gradient(180deg,#c4aa88 0px,#c4aa88 15px,#b09878 15px,#b09878 17px)',
     floor:'repeating-linear-gradient(90deg,#3a2818 0px,#3a2818 28px,#472e1e 28px,#472e1e 30px)',
-    base:'#2a1c0e',ceil:'#9a8060'},
-  {// 1: 반지하 원룸 — 눅눅한 녹색 벽, 콘크리트 바닥
+    base:'#2a1c0e',ceil:'#9a8060',
+    winBg:'#3a3028',winIcon:'🧱',winLabel:'벽돌벽'},
+  {// 1: 반지하 원룸
     wall:'linear-gradient(180deg,#6a8058 0%,#789068 55%,#86a075 100%)',
     floor:'repeating-linear-gradient(90deg,#2e2e2e 0px,#2e2e2e 22px,#242424 22px,#242424 24px)',
-    base:'#162010',ceil:'#445838'},
-  {// 2: 지상 원룸 — 따뜻한 베이지 벽, 밝은 원목 마루
+    base:'#162010',ceil:'#445838',
+    winBg:'#1a1a18',winIcon:'👟',winLabel:'지나가는 발목'},
+  {// 2: 지상 원룸
     wall:'linear-gradient(180deg,#f4e8d0 0%,#eedec8 100%)',
     floor:'repeating-linear-gradient(90deg,#7a5530 0px,#7a5530 36px,#8a6540 36px,#8a6540 38px)',
-    base:'#583820',ceil:'#ddc898'},
-  {// 3: 투룸 — 크림색 벽, 밝은 파케 마루
+    base:'#583820',ceil:'#ddc898',
+    winBg:'linear-gradient(180deg,#87ceeb 0%,#b0e0f0 60%,#d4f0a0 100%)',winIcon:'☀️',winLabel:'햇빛'},
+  {// 3: 투룸
     wall:'linear-gradient(180deg,#e8e2d8 0%,#ddd8cc 100%)',
     floor:'repeating-linear-gradient(90deg,#b89060 0px,#b89060 42px,#c8a070 42px,#c8a070 44px)',
-    base:'#7a6040',ceil:'#ccc8be'},
-  {// 4: 오피스텔 — 차가운 회청색 벽, 어두운 타일 바닥
+    base:'#7a6040',ceil:'#ccc8be',
+    winBg:'linear-gradient(180deg,#6080a0 0%,#809ec0 50%,#a0b8c0 100%)',winIcon:'🌧️',winLabel:'비 오는 거리'},
+  {// 4: 오피스텔
     wall:'linear-gradient(180deg,#c8d2dc 0%,#bec8d2 100%)',
     floor:'repeating-linear-gradient(0deg,rgba(0,0,0,0.07) 0px,rgba(0,0,0,0.07) 1px,transparent 1px,transparent 30px),repeating-linear-gradient(90deg,rgba(0,0,0,0.07) 0px,rgba(0,0,0,0.07) 1px,transparent 1px,transparent 30px),#505060',
-    base:'#343448',ceil:'#a8b2bc'},
-  {// 5: 고급 아파트 한강뷰 — 순백 벽, 고급 마루
+    base:'#343448',ceil:'#a8b2bc',
+    winBg:'linear-gradient(180deg,#ff7a3a 0%,#ffaa60 40%,#ffd080 100%)',winIcon:'🌆',winLabel:'도시 노을'},
+  {// 5: 고급 아파트 한강뷰
     wall:'linear-gradient(180deg,#f2eee8 0%,#eae6e0 100%)',
     floor:'repeating-linear-gradient(90deg,#c8a880 0px,#c8a880 50px,#d4b490 50px,#d4b490 52px)',
-    base:'#907860',ceil:'#e0dcd4'},
-  {// 6: 펜트하우스 — 짙은 차콜+금테, 고급 어두운 마루
+    base:'#907860',ceil:'#e0dcd4',
+    winBg:'linear-gradient(180deg,#0a1a40 0%,#1a3060 40%,#0a2848 100%)',winIcon:'🌉',winLabel:'한강 야경'},
+  {// 6: 펜트하우스
     wall:'linear-gradient(180deg,#1c1a24 0%,#22202c 100%)',
     floor:'repeating-linear-gradient(90deg,#28203a 0px,#28203a 56px,#20183a 56px,#20183a 58px)',
-    base:'#c8a030',ceil:'#0e0c14'},
-  {// 7: 개인 섬 별장 — 대나무 판자 벽, 모래빛 바닥
+    base:'#c8a030',ceil:'#0e0c14',
+    winBg:'linear-gradient(180deg,#050510 0%,#0a0a28 50%,#141430 100%)',winIcon:'🌃',winLabel:'서울 전경'},
+  {// 7: 개인 섬 별장
     wall:'repeating-linear-gradient(0deg,#d4a870 0px,#d4a870 26px,#c4986a 26px,#c4986a 28px)',
     floor:'radial-gradient(ellipse at 50% 0%,#ead898 0%,#d4c07a 55%,#c0a860 100%)',
-    base:'#806040',ceil:'#9a7848'},
-  {// 8: 우주 정거장 — 금속 패널 벽, 격자 바닥
+    base:'#806040',ceil:'#9a7848',
+    winBg:'linear-gradient(180deg,#1a90e0 0%,#38b0f0 40%,#60d0f8 100%)',winIcon:'🌴',winLabel:'열대 바다'},
+  {// 8: 우주 정거장
     wall:'repeating-linear-gradient(90deg,#14202e 0px,#14202e 60px,#1c2c3a 60px,#1c2c3a 62px)',
     floor:'repeating-linear-gradient(0deg,rgba(30,100,160,0.15) 0px,rgba(30,100,160,0.15) 1px,transparent 1px,transparent 22px),repeating-linear-gradient(90deg,rgba(30,100,160,0.15) 0px,rgba(30,100,160,0.15) 1px,transparent 1px,transparent 22px),#080c18',
-    base:'#204060',ceil:'#060a10'},
-  {// 9: 차원 너머 방 — 우주적 보라 그라디언트
+    base:'#204060',ceil:'#060a10',
+    winBg:'linear-gradient(180deg,#000008 0%,#08082a 60%,#040418 100%)',winIcon:'🌍',winLabel:'지구'},
+  {// 9: 차원 너머 방
     wall:'linear-gradient(135deg,#180028 0%,#080038 25%,#1e0008 50%,#080028 75%,#140020 100%)',
     floor:'repeating-linear-gradient(90deg,#220040 0px,#220040 45px,#1a0030 45px,#1a0030 47px)',
-    base:'#8800ee',ceil:'#0e001a'},
+    base:'#8800ee',ceil:'#0e001a',
+    winBg:'linear-gradient(135deg,#0a0020 0%,#200040 50%,#080020 100%)',winIcon:'🌀',winLabel:'차원 균열'},
 ];
 
 // ═══════════════════════════════
@@ -519,11 +532,13 @@ function updateRoomVisual(){
   document.getElementById('room-floor').style.background=css.floor;
   document.getElementById('room-baseboard').style.background=css.base;
   document.getElementById('room-ceiling').style.background=css.ceil;
-  // 창문 스타일
+  // 창문
   const win=document.getElementById('room-window');
-  win.textContent=r.win;win.title=r.winLabel;
-  // 창문 테두리를 방 분위기에 맞게
+  win.title=css.winLabel||'';
   win.style.borderColor=css.base||'#444';
+  const scene=document.getElementById('win-scene');
+  scene.style.background=css.winBg||'#111';
+  scene.textContent=css.winIcon||'🌫️';
   document.getElementById('char').textContent=r.char;
   const wall=document.getElementById('room-wall');
   if(G.stage>=8){wall.classList.add('stage9-bg');}else{wall.classList.remove('stage9-bg');}
