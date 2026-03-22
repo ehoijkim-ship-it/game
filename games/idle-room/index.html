@@ -712,12 +712,6 @@ function clickChar(){
   G.money+=v; G.totalEarned+=v; G.totalClicks=(G.totalClicks||0)+1;
   // hint 숨기기
   if(G.totalClicks===1){const h=document.getElementById('click-hint');if(h)h.style.display='none';}
-  // 캐릭터 탭 애니메이션
-  const ch=document.getElementById('char');
-  ch.classList.remove('tapped');
-  void ch.offsetWidth;
-  ch.classList.add('tapped');
-  setTimeout(()=>ch.classList.remove('tapped'),200);
   // 팝업 텍스트
   const room=document.getElementById('room');
   const p=document.createElement('div');
