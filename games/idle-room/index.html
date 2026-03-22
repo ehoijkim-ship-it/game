@@ -16,6 +16,8 @@ body{font-family:'Press Start 2P',monospace;background:var(--bg);color:#e2e8f0;h
 #money{font-size:28px;color:var(--accent);white-space:nowrap;margin-bottom:4px;text-shadow: 3px 3px 0 #000;}
 #ps{font-size:16px;color:var(--green);font-weight:bold;}
 #room-hud{text-align:right;flex-shrink:0;}
+#music-btn{background:none;border:2px solid #333;color:#555;font-size:18px;padding:5px 10px;cursor:pointer;border-radius:6px;transition:all 0.15s;flex-shrink:0;}
+#music-btn.on{border-color:var(--accent);color:var(--accent);}
 #room-hud-name{font-size:12px;color:var(--purple);margin-bottom:4px;}
 #room-hud-slots{font-size:11px;color:var(--green);}
 
@@ -134,6 +136,7 @@ body{font-family:'Press Start 2P',monospace;background:var(--bg);color:#e2e8f0;h
     <div id="room-hud-name">🏚️ 고시원</div>
     <div id="room-hud-slots">슬롯 0/3</div>
   </div>
+  <button id="music-btn" onclick="toggleMusic()" title="음악 켜기">🎵</button>
 </div>
 
 <div id="room">
@@ -814,6 +817,89 @@ function closeEvent(){
 function showToast(msg){
   const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
   clearTimeout(showToast._t);showToast._t=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+// ═══════════════════════════════
+// BACKGROUND MUSIC (Web Audio API — lofi Am-F-C-G)
+// ═══════════════════════════════
+const MUSIC=(() => {
+  const N={
+    C2:65.41,F2:87.31,G2:98.00,A2:110.00,
+    C3:130.81,E3:164.81,F3:174.61,G3:196.00,A3:220.00,B3:246.94,
+    C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392.00,A4:440.00,B4:493.88,
+    C5:523.25,D5:587.33,E5:659.25,
+  };
+  let ctx=null,master=null,playing=false,_tid=null;
+
+  function node(freq,type,t,dur,v0,vp,v1,det=0){
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type=type; o.frequency.value=freq; o.detune.value=det;
+    o.connect(g); g.connect(master);
+    const atk=Math.min(0.35,dur*0.25);
+    g.gain.setValueAtTime(v0,t);
+    g.gain.linearRampToValueAtTime(vp,t+atk);
+    g.gain.setValueAtTime(vp,t+dur-atk);
+    g.gain.linearRampToValueAtTime(v1,t+dur);
+    o.start(t); o.stop(t+dur+0.05);
+  }
+  function pluck(freq,t,vol=0.12){
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type='triangle'; o.frequency.value=freq;
+    o.connect(g); g.connect(master);
+    g.gain.setValueAtTime(vol,t);
+    g.gain.exponentialRampToValueAtTime(0.001,t+1.4);
+    o.start(t); o.stop(t+1.5);
+  }
+  function loop(startT){
+    if(!playing)return;
+    const beat=60/74; // 74 BPM — 느리고 나른한 lofi
+    const bar=beat*4;
+    const cd=bar*2; // 코드 1개당 2마디
+    const prog=[
+      {b:N.A2,pads:[N.A3,N.C4,N.E4],mel:[N.E5,null,N.C5,null,N.D5,null,N.C5,null]},
+      {b:N.F2,pads:[N.F3,N.A3,N.C4],mel:[N.C5,null,N.A4,null,null,null,N.C5,null]},
+      {b:N.C2,pads:[N.C3,N.E4,N.G4],mel:[N.G4,null,N.A4,null,N.G4,null,N.E4,null]},
+      {b:N.G2,pads:[N.G3,N.B3,N.D4],mel:[N.D4,null,N.E4,null,null,N.D4,null,null]},
+    ];
+    let t=startT;
+    prog.forEach(p=>{
+      // 베이스: 2마디에 2번
+      node(p.b,'sine',t,      beat*0.55,0,0.30,0,-4);
+      node(p.b,'sine',t+bar,  beat*0.55,0,0.30,0,-4);
+      // 패드 (코드)
+      p.pads.forEach((f,i)=>node(f,'triangle',t,cd,0,0.17/(i*0.5+1),0,i*3-2));
+      // 멜로디 (8분음표)
+      p.mel.forEach((f,i)=>{if(f)pluck(f,t+i*beat/2);});
+      t+=cd;
+    });
+    const total=cd*prog.length;
+    _tid=setTimeout(()=>loop(startT+total),(total-0.8)*1000);
+  }
+  return {
+    toggle(){
+      if(playing){
+        playing=false; clearTimeout(_tid);
+        master.gain.linearRampToValueAtTime(0,ctx.currentTime+0.6);
+        setTimeout(()=>{ctx&&ctx.close();ctx=null;master=null;},700);
+        return false;
+      }else{
+        ctx=new(window.AudioContext||window.webkitAudioContext)();
+        master=ctx.createGain(); master.gain.value=0.38;
+        master.connect(ctx.destination);
+        playing=true; loop(ctx.currentTime+0.1);
+        return true;
+      }
+    },
+    get playing(){return playing;}
+  };
+})();
+
+function toggleMusic(){
+  const on=MUSIC.toggle();
+  const btn=document.getElementById('music-btn');
+  btn.textContent=on?'🔊':'🎵';
+  btn.title=on?'음악 끄기':'음악 켜기';
+  btn.classList.toggle('on',on);
 }
 
 // ═══════════════════════════════
