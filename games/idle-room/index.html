@@ -31,8 +31,8 @@ body{font-family:'Press Start 2P',monospace;background:var(--bg);color:#e2e8f0;h
 .win-frame-h{position:absolute;top:50%;left:0;right:0;height:4px;background:rgba(0,0,0,0.35);transform:translateY(-50%);z-index:1;}
 .win-frame-v{position:absolute;left:50%;top:0;bottom:0;width:4px;background:rgba(0,0,0,0.35);transform:translateX(-50%);z-index:1;}
 #room-floor{position:absolute;bottom:0;left:0;right:0;height:36%;transition:background 0.8s;}
-#char{position:absolute;bottom:36%;left:50%;transform:translate(-50%,52%);font-size:54px;z-index:5;animation:breathe 4s ease-in-out infinite;cursor:pointer;}
-@keyframes breathe{0%,100%{transform:translate(-50%,52%) scale(1);}50%{transform:translate(-50%,52%) scale(1.07);}}
+#char{position:absolute;bottom:36%;left:50%;transform:translate(-50%,52%);font-size:80px;z-index:5;animation:breathe 4s ease-in-out infinite;cursor:pointer;}
+@keyframes breathe{0%,100%{transform:translate(-50%,52%) scale(1);}50%{transform:translate(-50%,52%) scale(1.05);}}
 #obj-grid{position:absolute;inset:0;z-index:3;pointer-events:none;}
 .obj-slot{position:absolute;display:flex;align-items:center;justify-content:center;filter:drop-shadow(2px 5px 4px rgba(0,0,0,0.75));transition:transform 0.2s;}
 .obj-lv{position:absolute;top:-7px;right:-7px;background:var(--accent);color:#000;font-size:10px;padding:2px 4px;border-radius:3px;font-weight:bold;z-index:1;}
@@ -59,12 +59,12 @@ body{font-family:'Press Start 2P',monospace;background:var(--bg);color:#e2e8f0;h
 .si.poor{border-color:#552222;}
 .si-header{display:flex;flex-direction:column;align-items:center;gap:15px;margin-bottom:15px;text-align:center;}
 .si-ico{font-size:48px;flex-shrink:0;}
-.si-name{font-size:18px;color:#fff;line-height:1.4;font-weight:bold;text-shadow: 2px 2px 0 #000;}
-.si-desc{font-size:12px;color:#777;line-height:2;margin-bottom:20px;height:72px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;text-align:center;}
+.si-name{font-size:20px;color:#fff;line-height:1.4;font-weight:bold;text-shadow: 2px 2px 0 #000;}
+.si-desc{font-size:14px;color:#999;line-height:1.9;margin-bottom:20px;height:80px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;text-align:center;}
 .si-footer{margin-top:auto;}
 .si-meta{margin-bottom:20px;text-align:center;border-top: 2px solid #2a2a2a;padding-top:15px;}
-.si-meta .c{display:block;font-size:24px;color:var(--accent);margin-bottom:10px;font-weight:bold;text-shadow: 2px 2px 0 #000;}
-.si-meta .i{display:block;font-size:15px;color:var(--green);font-weight:bold;}
+.si-meta .c{display:block;font-size:26px;color:var(--accent);margin-bottom:10px;font-weight:bold;text-shadow: 2px 2px 0 #000;}
+.si-meta .i{display:block;font-size:17px;color:var(--green);font-weight:bold;}
 .buy-btn{width:100%;background:#2563eb;color:#fff;border:none;font-family:'Press Start 2P',monospace;font-size:18px;padding:20px;cursor:pointer;border-radius:10px;transition:all 0.15s;box-shadow: 0 6px 0 #1d4ed8;font-weight:bold;}
 .buy-btn:hover:not(:disabled){background:#3b82f6;transform:translateY(-2px);box-shadow: 0 8px 0 #1d4ed8;}
 .buy-btn:active:not(:disabled){transform:translateY(4px);box-shadow: 0 2px 0 #1d4ed8;}
@@ -74,9 +74,9 @@ body{font-family:'Press Start 2P',monospace;background:var(--bg);color:#e2e8f0;h
 .ui{display:flex;flex-direction:column;padding:25px;background:#1a1a1a;border:4px solid #333;border-radius:15px;transition:all 0.15s;min-height:280px;}
 .ui-header{display:flex;flex-direction:column;align-items:center;gap:15px;margin-bottom:15px;text-align:center;}
 .ui-info{width:100%;}
-.ui-name{font-size:18px;color:#fff;margin-bottom:10px;font-weight:bold;text-shadow: 2px 2px 0 #000;}
-.ui-lv{font-size:14px;color:var(--purple);margin-bottom:8px;font-weight:bold;}
-.ui-next{font-size:13px;color:var(--green);line-height:1.8;background: rgba(0,0,0,0.4);padding:12px;border-radius:8px;margin-bottom:15px;}
+.ui-name{font-size:20px;color:#fff;margin-bottom:10px;font-weight:bold;text-shadow: 2px 2px 0 #000;}
+.ui-lv{font-size:15px;color:var(--purple);margin-bottom:8px;font-weight:bold;}
+.ui-next{font-size:14px;color:var(--green);line-height:1.9;background: rgba(0,0,0,0.4);padding:12px;border-radius:8px;margin-bottom:15px;}
 .up-btn{width:100%;background:#7c3aed;color:#fff;border:none;font-family:'Press Start 2P',monospace;font-size:18px;padding:20px;cursor:pointer;border-radius:10px;margin-top:auto;transition:all 0.15s;box-shadow: 0 6px 0 #6d28d9;font-weight:bold;}
 .up-btn:hover:not(:disabled){background:#8b5cf6;}
 .up-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none;}
@@ -186,14 +186,14 @@ body{font-family:'Press Start 2P',monospace;background:var(--bg);color:#e2e8f0;h
 const ROOMS=[
   {name:'고시원',emoji:'🏚️',slots:3,cost:500,wall:'#110e08',floor:'#1e1508',win:'🧱',winLabel:'벽돌',char:'🛌',desc:'좁고 냄새나지만 내 방이다. 월세 45만원. 왠지 싸다.'},
   {name:'반지하 원룸',emoji:'🏠',slots:4,cost:2000,wall:'#0b150b',floor:'#152015',win:'👟',winLabel:'지나가는 발',char:'🛌',desc:'창문으로 발목이 보인다. 비 오면 살짝 들어온다. 이걸 뷰라고 부른다.'},
-  {name:'지상 원룸',emoji:'🏡',slots:5,cost:8000,wall:'#1a1a2e',floor:'#252540',win:'☀️',winLabel:'햇빛',char:'😴',desc:'드디어 햇빛. 눈이 부셔서 커튼 쳤다. 지상이라는 사실만으로도 눈물이 난다.'},
-  {name:'투룸',emoji:'🏘️',slots:7,cost:30000,wall:'#0f1e28',floor:'#162a38',win:'🌧️',winLabel:'비 오는 거리',char:'😴',desc:'방이 두 개다. 나머지 방은 짐 창고다. 나는 항상 이 방에만 있다.'},
-  {name:'오피스텔',emoji:'🏢',slots:9,cost:120000,wall:'#14082a',floor:'#1f1040',win:'🌆',winLabel:'도시 야경',char:'😴',desc:'관리비가 따로 나온다. 수영장이 있는데 한 번도 안 갔다. 존재는 안다.'},
+  {name:'지상 원룸',emoji:'🏡',slots:5,cost:8000,wall:'#1a1a2e',floor:'#252540',win:'☀️',winLabel:'햇빛',char:'🛌',desc:'드디어 햇빛. 눈이 부셔서 커튼 쳤다. 지상이라는 사실만으로도 눈물이 난다.'},
+  {name:'투룸',emoji:'🏘️',slots:7,cost:30000,wall:'#0f1e28',floor:'#162a38',win:'🌧️',winLabel:'비 오는 거리',char:'🛌',desc:'방이 두 개다. 나머지 방은 짐 창고다. 나는 항상 이 방에만 있다.'},
+  {name:'오피스텔',emoji:'🏢',slots:9,cost:120000,wall:'#14082a',floor:'#1f1040',win:'🌆',winLabel:'도시 야경',char:'🛌',desc:'관리비가 따로 나온다. 수영장이 있는데 한 번도 안 갔다. 존재는 안다.'},
   {name:'고급 아파트 한강뷰',emoji:'🌊',slots:11,cost:500000,wall:'#080f20',floor:'#0d1830',win:'🌉',winLabel:'한강',char:'🛌',desc:'한강이 보인다. 창문 안 열고 사진만 찍어서 SNS 올렸다. 좋아요 300개.'},
   {name:'펜트하우스',emoji:'👑',slots:13,cost:2000000,wall:'#1a1200',floor:'#2a1e00',win:'🌃',winLabel:'서울 전경',char:'🛌',desc:'엘리베이터가 내 방에 직통이다. 귀찮아서 아직 한 번도 안 탔다.'},
-  {name:'개인 섬 별장',emoji:'🏝️',slots:15,cost:10000000,wall:'#041c0c',floor:'#063014',win:'🌴',winLabel:'야자수',char:'🏖️',desc:'섬 전체가 내 거다. 나는 방 안에만 있다. 섬은 그냥 배경이다.'},
-  {name:'우주 정거장',emoji:'🚀',slots:18,cost:50000000,wall:'#030308',floor:'#080815',win:'🌍',winLabel:'지구',char:'🧑‍🚀',desc:'무중력인데 어떻게든 누워있다. 지구가 보인다. 별로 궁금하지 않다.'},
-  {name:'차원 너머 방',emoji:'🌀',slots:Infinity,cost:Infinity,wall:'#12002a',floor:'#1e0040',win:'🌀',winLabel:'차원 균열',char:'🌌',desc:'숫자들이 말을 걸어온다. "안녕." 나는 대답하지 않았다. 그냥 누워있었다.'},
+  {name:'개인 섬 별장',emoji:'🏝️',slots:15,cost:10000000,wall:'#041c0c',floor:'#063014',win:'🌴',winLabel:'야자수',char:'🛌',desc:'섬 전체가 내 거다. 나는 방 안에만 있다. 섬은 그냥 배경이다.'},
+  {name:'우주 정거장',emoji:'🚀',slots:18,cost:50000000,wall:'#030308',floor:'#080815',win:'🌍',winLabel:'지구',char:'🛌',desc:'무중력인데 어떻게든 누워있다. 지구가 보인다. 별로 궁금하지 않다.'},
+  {name:'차원 너머 방',emoji:'🌀',slots:Infinity,cost:Infinity,wall:'#12002a',floor:'#1e0040',win:'🌀',winLabel:'차원 균열',char:'🛌',desc:'숫자들이 말을 걸어온다. "안녕." 나는 대답하지 않았다. 그냥 누워있었다.'},
 ];
 
 const OBJS=[
